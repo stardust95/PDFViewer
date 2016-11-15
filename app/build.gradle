@@ -1,0 +1,54 @@
+
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 24
+    buildToolsVersion "24.0.3"
+    defaultConfig {
+        applicationId "zju.homework.pdfviewer"
+        minSdkVersion 16
+        targetSdkVersion 24
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        buildConfigField "String", "PSPDFKIT_LICENSE_KEY", "\"Nc7ycSuZVUfj2kLDxWY94TL5UYYoEdUqYbo8QvUPW_oFFZfu0ckzDMLKK2G6MUY9aPCtI0TuM2lLpyMKeZynX8jrau3qjvImiKf09KKju9ak8L3guOEswsKuDeGJTCV4KzPFwLjmDnfGrtdpu02J7X4KGPs7A_-IW20S-B6M2UYX4O8-ymOAexol77cHRurhUreZcCZf0NqdvGtmNr_-Au68dVtB1Dp7J-z0WeU7G0wYWHMI89qnWhkAJ2k2IrUFMiGZ72y-j2n_XFUVP32Ft2H2jCkQWD7RWEFrquunrL77pVhif_Pjgu2g9k7bZZ73sUaIujrxOKhAdS8JYV65D-Nfn-FbCXuSCq1XewtpbUtzBsurmm0TTwEf6OUdcMjNGu1UtSBilTM3I5bm5aT1I7kqrHZWXFwiOc1M2gMR6GyC2sI1xk5pvwBRi48WjSYk\""
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    packagingOptions{
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/NOTICE'
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:25.0.0'
+    compile 'com.pspdfkit:pspdfkit:2.7.0@aar'
+    compile 'com.android.support:support-v4:25.0.+'
+    compile 'com.android.support:appcompat-v7:25.0.+'
+    compile 'com.android.support:recyclerview-v7:25.0.+'
+    compile 'com.android.support:cardview-v7:25.0.+'
+    compile 'com.android.support:design:25.0.+'
+    compile 'io.reactivex:rxjava:1.2.2'
+    compile 'io.reactivex:rxandroid:1.2.1'
+    compile 'com.getkeepsafe.relinker:relinker:1.2.2'
+    testCompile 'junit:junit:4.12'
+    compile files('libs/jackson-databind-2.8.1.jar')
+    compile files('libs/jackson-core-2.8.1.jar')
+    compile files('libs/jackson-annotations-2.8.1.jar')
+}

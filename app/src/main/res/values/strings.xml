@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">PDFViewer</string>
+
+    <string name="open_editor">edit</string>
+
+    <string name="close_editor">close</string>
+
+</resources>
