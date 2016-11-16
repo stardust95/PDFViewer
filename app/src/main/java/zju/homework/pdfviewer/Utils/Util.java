@@ -10,8 +10,10 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 import zju.homework.pdfviewer.Activitiy.MainActivity;
 
@@ -47,6 +49,20 @@ public class Util {
 
         activity.startActivityForResult(intent, REQUEST_OPEN_DOCUMENT);
 
+    }
+
+    public static String getStringFromInputStream(InputStream is, int MAX_BUFFER) throws IOException{
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        byte[] buffer = new byte[MAX_BUFFER];
+        int len = -1;
+
+        while ( (len = is.read(buffer) ) != -1){
+            os.write(buffer, 0, len);
+        }
+        is.close();
+        String state = os.toString();
+        os.close();
+        return state;
     }
 
 

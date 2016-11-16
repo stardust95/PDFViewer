@@ -1,7 +1,10 @@
 package zju.homework.pdfviewer.Activitiy;
 
 import android.content.DialogInterface;
+import android.graphics.PointF;
+import android.graphics.RectF;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -14,12 +17,22 @@ import android.widget.Toast;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.pspdfkit.annotations.Annotation;
 import com.pspdfkit.annotations.AnnotationProvider;
+import com.pspdfkit.annotations.BorderStyle;
 import com.pspdfkit.annotations.FreeTextAnnotation;
 import com.pspdfkit.annotations.HighlightAnnotation;
 import com.pspdfkit.annotations.InkAnnotation;
@@ -45,78 +58,192 @@ import com.pspdfkit.ui.toolbar.ToolbarCoordinatorLayout;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
 import zju.homework.pdfviewer.BuildConfig;
 import zju.homework.pdfviewer.R;
+import zju.homework.pdfviewer.Utils.NetworkManager;
+
+import static zju.homework.pdfviewer.Activitiy.PDFViewActivity.mapper;
+
+class ItemsJsonDeserializer extends JsonDeserializer<List<RectF>> {
+
+    @Override
+    public List<RectF> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonParseException{
+        InnerItems innerItems = jp.readValueAs(InnerItems.class);
+
+        return innerItems.elements;
+    }
+
+    private static class InnerItems {
+        public List<RectF> elements;
+    }
+}
+
+class AnnotationDeserializer extends JsonDeserializer<Annotation> {
+
+    @Override
+    public Annotation deserialize(JsonParser jp, DeserializationContext ctxt)
+            throws IOException, JsonParseException{
+        JsonNode node = jp.getCodec().readTree(jp);
+        Annotation result = null;
+        int page, borderColor, borderWidth, color, fillcolor;
+        String type, content, creator, name, richText;
+        BorderStyle style = null;
+        RectF boundingBox = null;
+        Date createdDate = null, modifiedDate = null;
+        List<Integer> dashArray = null;
+
+        page = node.get("pageIndex").asInt();
+//        page = 3;     // DEBUG
+        type = node.get("type").textValue();
+
+        if( type.equals("INK") ){
+            result = new InkAnnotation(page);
+            List<List<PointF>> lines = mapper.readValue(node.get("lines").toString(),
+                    new TypeReference<List<List<PointF>>>() {});
+            ((InkAnnotation)result).setLines(lines);
+            ((InkAnnotation)result).setLineWidth( node.get("lineWidth").asInt() );
+        }else if( type.equals("FREETEXT") ){
+            content = node.get("contents").asText();
+            result = new FreeTextAnnotation(page, boundingBox, content);
+            ((FreeTextAnnotation)result).setTextColor( node.get("textColor").asInt() );
+            ((FreeTextAnnotation)result).setTextSize( node.get("textSize").asInt() );
+            ((FreeTextAnnotation)result).setTextStrokeColor( node.get("textStrokeColor").asInt() );
+        }else if( type.equals("HIGHLIGHT") ){
+            List<RectF> rects = mapper.readValue(node.get("rects").toString(), new TypeReference<List<RectF>>() {});
+            result = new HighlightAnnotation(page, rects);
+        }else if( type.equals("NOTE") ){
+            content = node.get("contents").asText();
+            String iconName = node.get("iconName").asText();
+            result = new NoteAnnotation(page, boundingBox, content, iconName);
+        }else{
+            throw new JsonParseException(jp, "Type Not Match of 4 basic annotation");
+        }
+
+
+        if( !node.get("borderStyle").asText().equals("NONE") ) {            // if has border style
+            switch ( node.get("borderStyle").asText() ){
+                case "SOLID": style = BorderStyle.SOLID; break;
+                case "BEVELED": style = BorderStyle.BEVELED; break;
+                case "DASHED": style = BorderStyle.DASHED; break;
+                case "INSET": style = BorderStyle.INSET; break;
+                case "NONE": style = BorderStyle.NONE; break;
+                case "UNDERLINE": style = BorderStyle.UNDERLINE; break;
+                case "UNKNOWN": style = BorderStyle.UNKNOWN; break;
+            }
+            result.setBorderStyle(style);
+        }
+        if( node.get("createdDate") != null ) {
+            createdDate = mapper.readValue(node.get("createdDate").asText(), Date.class);
+            result.setCreatedDate(createdDate);
+        }
+
+        if( node.get("modifiedDate") != null ) {
+            modifiedDate = mapper.readValue(node.get("modifiedDate").asText(), Date.class);
+            result.setModifiedDate(modifiedDate);
+        }
+        if( node.get("borderDashArray") != null ) {
+            dashArray = mapper.readValue(node.get("borderDashArray").asText(), new TypeReference<List<Integer>>() {});
+            result.setBorderDashArray(dashArray);
+        }
+
+        if( node.get("boundingBox") != null ){
+            boundingBox = mapper.readValue(node.get("boundingBox").toString(), RectF.class);
+            result.setBoundingBox(boundingBox);
+        }
+
+        if( node.get("contents") != null ) {
+            content = node.get("contents").asText();
+            result.setContents(content);
+        }
+        if( node.get("creator") != null ) {
+            creator = node.get("creator").asText();
+            result.setCreator(creator);
+        }
+        if( node.get("name") != null ) {
+            name = node.get("name").asText();
+            result.setName(name);
+        }
+        if( node.get("richText") != null ) {
+            richText = node.get("richText").asText();
+            result.setRichText(richText);
+        }
+
+        if( node.get("borderColor") != null ) {
+            borderColor = node.get("borderColor").asInt();
+            result.setBorderColor(borderColor);
+        }
+        if( node.get("borderWidth") != null ) {
+            borderWidth = node.get("borderWidth").asInt();
+            result.setBorderWidth(borderWidth);
+        }
+        if( node.get("color") != null ) {
+            color = node.get("color").asInt();
+            result.setColor(color);
+        }
+        if( node.get("fillColor") != null ) {
+            fillcolor = node.get("fillColor").asInt();
+            result.setFillColor(fillcolor);
+        }
+
+        return result;
+    }
+
+}
+
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = InkAnnotation.class, name = "InkAnnotation"),
+        @JsonSubTypes.Type(value = FreeTextAnnotation.class, name = "FreeTextAnnotation"),
+        @JsonSubTypes.Type(value = HighlightAnnotation.class, name = "HighlightAnnotation"),
+        @JsonSubTypes.Type(value = NoteAnnotation.class, name = "NoteAnnotation")
+})
+@JsonDeserialize(using = AnnotationDeserializer.class)
+abstract class AnnotationMixin extends Annotation{
+    @JsonCreator
+    AnnotationMixin(@JsonProperty("page") int pageIndex){
+        super(pageIndex);
+    }
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+abstract class SubclassAnnotationMixin {
+    @JsonCreator
+    SubclassAnnotationMixin(@JsonProperty("acName") ac acName){ }
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true, value = {"empty"})
+//@JsonDeserialize(using = CollectionDeserializer.class)
+abstract class IgnoreUnknownMixin{ }
 
 public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotationManager.OnAnnotationCreationModeChangeListener,
         PSPDFAnnotationManager.OnAnnotationEditingModeChangeListener, TextSelectionManager.OnTextSelectionModeChangeListener,
         PSPDFAnnotationManager.OnAnnotationUpdatedListener{
 
-    private final String LOG_TAG = "*** PDFVIEWER TAG ***";
+    static final String LOG_TAG = "*** PDFVIEWER TAG ***";
 
-    private static ObjectMapper mapper;
+    static ObjectMapper mapper;
 
     static {
         mapper = new ObjectMapper();
+
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.addMixIn(RectF.class, IgnoreUnknownMixin.class);
         mapper.addMixIn(Annotation.class, AnnotationMixin.class);
+
         mapper.addMixIn(InkAnnotation.class, SubclassAnnotationMixin.class);
-//        mapper.addMixIn(FreeTextAnnotation.class, SubclassAnnotationMixin.class);
-//        mapper.addMixIn(HighlightAnnotation.class, SubclassAnnotationMixin.class);
-//        mapper.addMixIn(NoteAnnotation.class, SubclassAnnotationMixin.class);
+        mapper.addMixIn(FreeTextAnnotation.class, SubclassAnnotationMixin.class);
+        mapper.addMixIn(HighlightAnnotation.class, SubclassAnnotationMixin.class);
+        mapper.addMixIn(NoteAnnotation.class, SubclassAnnotationMixin.class);
     }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonTypeInfo(
-            use = JsonTypeInfo.Id.NAME,
-            include = JsonTypeInfo.As.PROPERTY)
-    @JsonSubTypes({
-            @JsonSubTypes.Type(value = InkAnnotation.class, name = "InkAnnotation"),
-            @JsonSubTypes.Type(value = FreeTextAnnotation.class, name = "FreeTextAnnotation"),
-            @JsonSubTypes.Type(value = HighlightAnnotation.class, name = "HighlightAnnotation"),
-            @JsonSubTypes.Type(value = NoteAnnotation.class, name = "NoteAnnotation"),
-    })
-    abstract class AnnotationMixin extends Annotation{
-
-        @JsonCreator
-        AnnotationMixin(@JsonProperty("page") int page){ super(page); }
-    }
-
-    abstract class SubclassAnnotationMixin extends InkAnnotation{
-        @JsonCreator
-        SubclassAnnotationMixin(@JsonProperty("acName") ac acName){ super(acName);}
-
-        @JsonCreator
-        SubclassAnnotationMixin(@JsonProperty("page") int page){ super(page);}
-
-
-    }
-
-
-
-//    public class AnnotationWrapper {
-//
-//        public AnnotationWrapper(){
-//            type = null;
-//            data = null;
-//        }
-//
-//        public AnnotationWrapper(Annotation annotation){
-//            data = annotation;
-//            type = annotation.getType().toString();
-//        }
-//
-//        public Annotation getAnnotation(){
-//            return data;
-//        }
-//
-//        private String type;
-//
-//        private Annotation data;
-//    }
-
 
     public static final String EXTRA_URI = "ToolbarsInFragmentActivity.DocumentUri";
 
@@ -136,11 +263,16 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     private AnnotationEditingInspectorController annotationEditingInspectorController;
     private AnnotationCreationInspectorController annotationCreationInspectorController;
 
+    private NetworkManager networkManager;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pdfview);
         setSupportActionBar(null);
+
+        networkManager = new NetworkManager();
+
         toolbarCoordinatorLayout = (ToolbarCoordinatorLayout) findViewById(R.id.toolbarCoordinatorLayout);
 
         annotationCreationToolbar = new AnnotationCreationToolbar(this);
@@ -214,8 +346,8 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     }
     @Override
     public void onAnnotationUpdated(@NonNull Annotation annotation) {
-//        Log.i("TAG", "The annotation was updated");
-//        Toast.makeText(this, "annotation was updated", Toast.LENGTH_LONG);
+        Log.v("TAG", "The annotation was updated");
+        Toast.makeText(this, "annotation was updated", Toast.LENGTH_LONG);
     }
 
 
@@ -275,11 +407,9 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         for(Annotation annotation : annotationList){
             if( annotation == null )
                 continue;
-
-            path = objectToJson(annotation, "test.json");
-            annotationProvider.removeAnnotationFromPage(annotation);
-
-            fragment.notifyAnnotationHasChanged(annotation);
+            path = objectToJson(annotation, "test");
+//            annotationProvider.removeAnnotationFromPage(annotation);
+//            fragment.notifyAnnotationHasChanged(annotation);
         }
         try{
             fragment.getDocument().saveIfModified();
@@ -290,8 +420,8 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         Annotation annotation = (Annotation) jsonToObject(path, Annotation.class);
 
         if( annotation != null ){
-            annotationProvider.addAnnotationToPage(annotation);
-            fragment.notifyAnnotationHasChanged(annotation);
+//            annotationProvider.addAnnotationToPage(annotation);
+//            fragment.notifyAnnotationHasChanged(annotation);
         }else{
             Toast.makeText(this, "annotation must not be null", Toast.LENGTH_LONG);
         }
@@ -369,7 +499,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     public String objectToJson(Object obj, String filePath){
 
         try{
-            File file = File.createTempFile(filePath, "", this.getCacheDir());
+            File file = File.createTempFile(filePath, "json", this.getCacheDir());
             mapper.writeValue(file, obj);
             return file.getAbsolutePath();
         }
@@ -385,13 +515,49 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
             File file = new File(absolutePath);
             Scanner in = new Scanner(new FileReader(file));
             Object obj = mapper.readValue(file, cls);
-            Log.i(LOG_TAG, "filepath = " + absolutePath + ", content = " + in.toString());
+            Log.v(LOG_TAG, "filepath = " + absolutePath + ", content = " + in.toString());
             return obj;
         }
 
         catch (IOException ex){
             ex.printStackTrace();
             return null;
+        }
+    }
+
+    private class syncAnnotationTask extends AsyncTask<String, Void, String>{
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected String doInBackground(String... params){
+            return networkManager.postJson(networkManager.host + networkManager.registerUrl, "asdasd");
+        }
+
+        @Override
+        protected void onPostExecute(String responseMsg){
+            Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
+        }
+    }
+
+    private class registerTask extends AsyncTask<String, Void, String>{
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected String doInBackground(String... params){
+            return networkManager.postJson(networkManager.host + networkManager.registerUrl, "asdasd");
+        }
+
+        @Override
+        protected void onPostExecute(String responseMsg){
+            Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
         }
     }
 
