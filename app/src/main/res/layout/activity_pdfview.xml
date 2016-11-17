@@ -8,11 +8,6 @@
     tools:ignore="UnusedAttribute"
     tools:context="zju.homework.pdfviewer.Activitiy.PDFViewActivity">
 
-    <FrameLayout
-        android:id="@+id/fragmentContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
     <Button
         android:id="@+id/openAnnotationEditing"
         android:layout_width="wrap_content"
@@ -37,6 +32,12 @@
         android:id="@+id/inspectorCoordinatorLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:elevation="16dp" />
+        android:elevation="16dp" >
+
+        <FrameLayout
+            android:id="@+id/fragmentContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </com.pspdfkit.ui.inspector.PropertyInspectorCoordinatorLayout>
 
 </FrameLayout>

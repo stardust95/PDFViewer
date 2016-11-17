@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -56,15 +57,30 @@ import com.pspdfkit.ui.toolbar.TextSelectionToolbar;
 import com.pspdfkit.ui.toolbar.ToolbarCoordinatorLayout;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
 import zju.homework.pdfviewer.BuildConfig;
+import zju.homework.pdfviewer.Java.Account;
 import zju.homework.pdfviewer.R;
+import zju.homework.pdfviewer.Java.Group;
 import zju.homework.pdfviewer.Utils.NetworkManager;
+import zju.homework.pdfviewer.Utils.Util;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import com.microsoft.windowsazure.mobileservices.authentication.MobileServiceAuthenticationProvider;
+import com.microsoft.windowsazure.mobileservices.authentication.MobileServiceUser;
 
 import static zju.homework.pdfviewer.Activitiy.PDFViewActivity.mapper;
 
@@ -228,8 +244,11 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         PSPDFAnnotationManager.OnAnnotationUpdatedListener{
 
     static final String LOG_TAG = "*** PDFVIEWER TAG ***";
+    private Uri fileUri;
+
 
     static ObjectMapper mapper;
+
 
     static {
         mapper = new ObjectMapper();
@@ -265,6 +284,8 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
 
     private NetworkManager networkManager;
 
+    private Account account;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -286,8 +307,8 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
 
         // The actual document Uri is provided with the launching intent. You can simply change that inside the CustomSearchUiExample class.
         // This is a check that the example is not accidentally launched without a document Uri.
-        final Uri uri = getIntent().getParcelableExtra(EXTRA_URI);
-        if (uri == null) {
+        fileUri = getIntent().getParcelableExtra(EXTRA_URI);
+        if (fileUri == null) {
             new AlertDialog.Builder(this)
                     .setTitle("Could not start example.")
                     .setMessage("No document Uri was provided with the launching intent.")
@@ -308,7 +329,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
 
         fragment = (PSPDFFragment) getSupportFragmentManager().findFragmentById(R.id.fragmentContainer);
         if (fragment == null) {
-            fragment = PSPDFFragment.newInstance(uri, config);
+            fragment = PSPDFFragment.newInstance(fileUri, config);
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.fragmentContainer, fragment)
                     .commit();
@@ -332,6 +353,20 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
                 }
             }
         });
+
+        account = new Account("admin", null);
+
+        String pdfData;
+        registerTask registerTask = new registerTask();
+        createGroupTask createGroupTask = new createGroupTask();
+
+        try{
+            pdfData = Util.getStringFromInputStream(new FileInputStream(new File(fileUri.getPath())));
+            registerTask.execute(account.getId(), account.getCurrentGroupId());
+//            createGroupTask.execute("group id", pdfData, fileUri.getLastPathSegment(),account.getId());
+        }catch (IOException ex){
+            ex.printStackTrace();
+        }
 
         updateButtonText();
     }
@@ -534,7 +569,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
 
         @Override
         protected String doInBackground(String... params){
-            return networkManager.postJson(networkManager.host + networkManager.registerUrl, "asdasd");
+            return networkManager.postJson(networkManager.URL_ANNOTATION, "asdasd");
         }
 
         @Override
@@ -552,13 +587,72 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
 
         @Override
         protected String doInBackground(String... params){
-            return networkManager.postJson(networkManager.host + networkManager.registerUrl, "asdasd");
+            try{
+                networkManager.postJson(networkManager.URL_ACCOUNT,
+                        mapper.writeValueAsString(new Account(params[0], params[1]))
+                );
+
+            }catch (JsonProcessingException ex){
+                ex.printStackTrace();
+            }
+            return "Register Finished";
         }
 
         @Override
         protected void onPostExecute(String responseMsg){
             Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
         }
+    }
+
+    private class createGroupTask extends AsyncTask<String, Void, String>{
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }       // @MainThread
+
+        /**
+         *
+         * @param params is [GroupID, FileData, FileName, Creator ].
+         */
+        @Override
+        protected String doInBackground(String... params) {         // WorkerThread
+            if( params.length < 4 )
+                return "Not enough params in create group task";
+
+            try{
+                InputStream is = new FileInputStream(new File(fileUri.getPath()));
+
+                networkManager.postJson(networkManager.URL_GROUP,
+                        mapper.writeValueAsString(
+//                        new Group(params[0], Util.getStringFromInputStream(is), fileUri.getLastPathSegment())
+                        new Group(params[0], params[1], params[2], params[3]))
+                );
+
+                return "Create Group Finish";
+            }catch (FileNotFoundException ex){
+                ex.printStackTrace();
+            }catch (IOException ex ){
+                ex.printStackTrace();
+            }
+
+            return "Create Group Aborted";
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+            super.onProgressUpdate(values);
+        }
+
+        @Override
+        protected void onPostExecute(String s) {        // @MainThread
+            super.onPostExecute(s);
+            Toast.makeText(PDFViewActivity.this, s, Toast.LENGTH_LONG);
+        }
+    }
+
+    private void authenticate(){
+//        ListenableFuture<MobileServiceUser> mLogin = mClient.login(MobileServiceAuthenticationProvider.Google);
     }
 
 }

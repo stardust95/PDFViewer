@@ -10,11 +10,15 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 
+import zju.homework.pdfviewer.Activitiy.LoginActivity;
 import zju.homework.pdfviewer.Activitiy.MainActivity;
 
 
@@ -26,6 +30,7 @@ public class Util {
 
     public static final int REQUEST_OPEN_DOCUMENT = 1;
     public static final int REQUEST_ASK_FOR_PERMISSION = 2;
+    public static final int REQUEST_LOGIN = 3;
 
     public static boolean requestExternalStorageRwPermission(@NonNull Activity activity, int requestCode) {
         // On Android 6.0+ we ask for SD card access permission.
@@ -51,21 +56,26 @@ public class Util {
 
     }
 
-    public static String getStringFromInputStream(InputStream is, int MAX_BUFFER) throws IOException{
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        byte[] buffer = new byte[MAX_BUFFER];
-        int len = -1;
+    public static String getStringFromInputStream(InputStream is) throws IOException{
 
-        while ( (len = is.read(buffer) ) != -1){
-            os.write(buffer, 0, len);
+        StringBuilder sb = new StringBuilder();
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        String line = null;
+
+        while ( (line = br.readLine()) != null ){
+            sb.append(line);
         }
         is.close();
-        String state = os.toString();
-        os.close();
-        return state;
+        br.close();
+        return sb.toString();
     }
 
 
+    public static void userLogin(@NonNull Activity activity) {
+        Intent intent = new Intent(activity, LoginActivity.class);
+
+        activity.startActivityForResult(intent, REQUEST_LOGIN);
+    }
 
 }
 

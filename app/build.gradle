@@ -51,4 +51,5 @@ dependencies {
     compile files('libs/jackson-databind-2.8.1.jar')
     compile files('libs/jackson-core-2.8.1.jar')
     compile files('libs/jackson-annotations-2.8.1.jar')
+    compile files('libs/azure-mobile-services-android-sdk-2.0.3.jar')
 }

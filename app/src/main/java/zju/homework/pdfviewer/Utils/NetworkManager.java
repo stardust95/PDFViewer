@@ -21,9 +21,10 @@ import zju.homework.pdfviewer.Activitiy.PDFViewActivity;
 
 public class NetworkManager {
 
-    public final String host = "http://localhost:1234";
-    public final String registerUrl = "/postJson";
-    public final String jsonUrl = "/json";
+    public final String HOST = "http://localhost:60987";
+    public final String URL_ACCOUNT = HOST + "/tables/account";
+    public final String URL_ANNOTATION = HOST + "/tables/annotation";
+    public final String URL_GROUP = HOST + "/tables/group";
 
     final static String LOG_TAG = "***NETWORK***";
 
@@ -47,7 +48,7 @@ public class NetworkManager {
             if( response == RESPONSE_OK ){
                 InputStream is = connection.getInputStream();
                 try{
-                    result = Util.getStringFromInputStream(is, MAX_BUFFER);
+                    result = Util.getStringFromInputStream(is);
                 }catch (IOException ex){
                     ex.printStackTrace();
                 }finally {
@@ -79,10 +80,11 @@ public class NetworkManager {
             outputStream.close();
 
             int response = connection.getResponseCode();
+            Log.i(LOG_TAG, connection.getResponseMessage());
             if( response == RESPONSE_OK ){
                 InputStream is = connection.getInputStream();
                 try {
-                     result = Util.getStringFromInputStream(is, MAX_BUFFER);
+                     result = Util.getStringFromInputStream(is);
                 }
                 catch (IOException ex){
                     ex.printStackTrace();
@@ -91,7 +93,7 @@ public class NetworkManager {
                     is.close();
                 }
             }else {
-                Log.i(LOG_TAG, "Register failed:" + response);
+                Log.i(LOG_TAG, "Post Failed, Response Message:" + connection.getResponseMessage());
             }
 
         }catch (IOException ex){
