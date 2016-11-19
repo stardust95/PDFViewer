@@ -10,9 +10,20 @@ public class Account {
 
     private String currentGroupId;
 
-    public Account(String id, String currentGroupId) {
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    private String password;
+
+    public Account(String id, String pwd) {
         this.id = id;
-        this.currentGroupId = currentGroupId;
+        this.password = pwd;
+//        this.currentGroupId = group;
     }
 
     public String getId() {

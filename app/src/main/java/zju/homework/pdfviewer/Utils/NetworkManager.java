@@ -1,19 +1,16 @@
 package zju.homework.pdfviewer.Utils;
 
 
-import android.os.AsyncTask;
+import android.accounts.NetworkErrorException;
 import android.util.Log;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.lang.annotation.Retention;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import zju.homework.pdfviewer.Activitiy.PDFViewActivity;
+import zju.homework.pdfviewer.Activitiy.Util;
 
 /**
  * Created by stardust on 2016/11/16.
@@ -21,12 +18,7 @@ import zju.homework.pdfviewer.Activitiy.PDFViewActivity;
 
 public class NetworkManager {
 
-    public final String HOST = "http://localhost:60987";
-    public final String URL_ACCOUNT = HOST + "/tables/account";
-    public final String URL_ANNOTATION = HOST + "/tables/annotation";
-    public final String URL_GROUP = HOST + "/tables/group";
-
-    final static String LOG_TAG = "***NETWORK***";
+    final static String LOG_TAG = NetworkManager.class.getName();
 
     final static int RESPONSE_OK = 200;
 
@@ -35,6 +27,7 @@ public class NetworkManager {
     public NetworkManager(){ }
 
     public String getJson(String addr){
+
         String result = null;
         try {
             URL url = new URL(addr);
@@ -44,8 +37,8 @@ public class NetworkManager {
             connection.setDoInput(true);
             connection.connect();
 
-            int response = connection.getResponseCode();
-            if( response == RESPONSE_OK ){
+            int responseCode = connection.getResponseCode();
+            if( responseCode == RESPONSE_OK ){
                 InputStream is = connection.getInputStream();
                 try{
                     result = Util.getStringFromInputStream(is);
@@ -60,7 +53,6 @@ public class NetworkManager {
         }catch (IOException ex){
             ex.printStackTrace();
         }
-
         return result;
     }
 
@@ -69,7 +61,10 @@ public class NetworkManager {
         try{
             URL url = new URL(addr);
             HttpURLConnection connection= (HttpURLConnection) url.openConnection();
-            connection.setRequestProperty("User-Agent", "");
+//            connection.setRequestProperty("User-Agent", "");
+            connection.setReadTimeout(15000);
+            connection.setConnectTimeout(15000);
+            connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestMethod("POST");
             connection.setDoInput(true);
             connection.connect();
@@ -79,12 +74,13 @@ public class NetworkManager {
             outputStream.flush();
             outputStream.close();
 
-            int response = connection.getResponseCode();
+            int responseCode = connection.getResponseCode();
             Log.i(LOG_TAG, connection.getResponseMessage());
-            if( response == RESPONSE_OK ){
+            if( responseCode == RESPONSE_OK ){
                 InputStream is = connection.getInputStream();
+
                 try {
-                     result = Util.getStringFromInputStream(is);
+                    result = Util.getStringFromInputStream(is);
                 }
                 catch (IOException ex){
                     ex.printStackTrace();
@@ -93,12 +89,16 @@ public class NetworkManager {
                     is.close();
                 }
             }else {
-                Log.i(LOG_TAG, "Post Failed, Response Message:" + connection.getResponseMessage());
+                throw new NetworkErrorException( "Post Failed, Response Message:" + connection.getResponseMessage());
+//                Log.i(LOG_TAG,);
             }
 
         }catch (IOException ex){
             ex.printStackTrace();
+        }catch (NetworkErrorException ex){
+            ex.printStackTrace();
         }
+
         return result;
     }
 

@@ -4,6 +4,7 @@
     <string name="open_editor">edit</string>
 
     <string name="close_editor">close</string>
+
     <string name="title_activity_login">Sign in</string>
 
     <!-- Strings related to login -->

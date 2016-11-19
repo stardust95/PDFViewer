@@ -1,10 +1,8 @@
 package zju.homework.pdfviewer.Activitiy;
 
 import android.content.DialogInterface;
-import android.graphics.PointF;
 import android.graphics.RectF;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -12,34 +10,17 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.AnticipateOvershootInterpolator;
 import android.widget.Button;
 import android.widget.Toast;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.json.UTF8DataInputJsonParser;
+import com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.pspdfkit.annotations.Annotation;
 import com.pspdfkit.annotations.AnnotationProvider;
-import com.pspdfkit.annotations.BorderStyle;
-import com.pspdfkit.annotations.FreeTextAnnotation;
-import com.pspdfkit.annotations.HighlightAnnotation;
-import com.pspdfkit.annotations.InkAnnotation;
 import com.pspdfkit.annotations.NoteAnnotation;
 import com.pspdfkit.configuration.PSPDFConfiguration;
-import com.pspdfkit.framework.ac;
 import com.pspdfkit.ui.PSPDFFragment;
 import com.pspdfkit.ui.inspector.PropertyInspectorCoordinatorLayout;
 import com.pspdfkit.ui.inspector.annotation.AnnotationCreationInspectorController;
@@ -56,221 +37,42 @@ import com.pspdfkit.ui.toolbar.AnnotationEditingToolbar;
 import com.pspdfkit.ui.toolbar.TextSelectionToolbar;
 import com.pspdfkit.ui.toolbar.ToolbarCoordinatorLayout;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
+import java.sql.Time;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Scanner;
+import java.util.Random;
 
 import zju.homework.pdfviewer.BuildConfig;
-import zju.homework.pdfviewer.Java.Account;
-import zju.homework.pdfviewer.R;
+import zju.homework.pdfviewer.Java.AnnotationData;
 import zju.homework.pdfviewer.Java.Group;
+import zju.homework.pdfviewer.R;
+import zju.homework.pdfviewer.Tasks.CreateGroupTask;
+import zju.homework.pdfviewer.Tasks.DownloadAnnotationTask;
+import zju.homework.pdfviewer.Tasks.UploadAnnotationTask;
 import zju.homework.pdfviewer.Utils.NetworkManager;
-import zju.homework.pdfviewer.Utils.Util;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
-import com.microsoft.windowsazure.mobileservices.authentication.MobileServiceAuthenticationProvider;
-import com.microsoft.windowsazure.mobileservices.authentication.MobileServiceUser;
-
-import static zju.homework.pdfviewer.Activitiy.PDFViewActivity.mapper;
-
-class ItemsJsonDeserializer extends JsonDeserializer<List<RectF>> {
-
-    @Override
-    public List<RectF> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonParseException{
-        InnerItems innerItems = jp.readValueAs(InnerItems.class);
-
-        return innerItems.elements;
-    }
-
-    private static class InnerItems {
-        public List<RectF> elements;
-    }
-}
-
-class AnnotationDeserializer extends JsonDeserializer<Annotation> {
-
-    @Override
-    public Annotation deserialize(JsonParser jp, DeserializationContext ctxt)
-            throws IOException, JsonParseException{
-        JsonNode node = jp.getCodec().readTree(jp);
-        Annotation result = null;
-        int page, borderColor, borderWidth, color, fillcolor;
-        String type, content, creator, name, richText;
-        BorderStyle style = null;
-        RectF boundingBox = null;
-        Date createdDate = null, modifiedDate = null;
-        List<Integer> dashArray = null;
-
-        page = node.get("pageIndex").asInt();
-//        page = 3;     // DEBUG
-        type = node.get("type").textValue();
-
-        if( type.equals("INK") ){
-            result = new InkAnnotation(page);
-            List<List<PointF>> lines = mapper.readValue(node.get("lines").toString(),
-                    new TypeReference<List<List<PointF>>>() {});
-            ((InkAnnotation)result).setLines(lines);
-            ((InkAnnotation)result).setLineWidth( node.get("lineWidth").asInt() );
-        }else if( type.equals("FREETEXT") ){
-            content = node.get("contents").asText();
-            result = new FreeTextAnnotation(page, boundingBox, content);
-            ((FreeTextAnnotation)result).setTextColor( node.get("textColor").asInt() );
-            ((FreeTextAnnotation)result).setTextSize( node.get("textSize").asInt() );
-            ((FreeTextAnnotation)result).setTextStrokeColor( node.get("textStrokeColor").asInt() );
-        }else if( type.equals("HIGHLIGHT") ){
-            List<RectF> rects = mapper.readValue(node.get("rects").toString(), new TypeReference<List<RectF>>() {});
-            result = new HighlightAnnotation(page, rects);
-        }else if( type.equals("NOTE") ){
-            content = node.get("contents").asText();
-            String iconName = node.get("iconName").asText();
-            result = new NoteAnnotation(page, boundingBox, content, iconName);
-        }else{
-            throw new JsonParseException(jp, "Type Not Match of 4 basic annotation");
-        }
-
-
-        if( !node.get("borderStyle").asText().equals("NONE") ) {            // if has border style
-            switch ( node.get("borderStyle").asText() ){
-                case "SOLID": style = BorderStyle.SOLID; break;
-                case "BEVELED": style = BorderStyle.BEVELED; break;
-                case "DASHED": style = BorderStyle.DASHED; break;
-                case "INSET": style = BorderStyle.INSET; break;
-                case "NONE": style = BorderStyle.NONE; break;
-                case "UNDERLINE": style = BorderStyle.UNDERLINE; break;
-                case "UNKNOWN": style = BorderStyle.UNKNOWN; break;
-            }
-            result.setBorderStyle(style);
-        }
-        if( node.get("createdDate") != null ) {
-            createdDate = mapper.readValue(node.get("createdDate").asText(), Date.class);
-            result.setCreatedDate(createdDate);
-        }
-
-        if( node.get("modifiedDate") != null ) {
-            modifiedDate = mapper.readValue(node.get("modifiedDate").asText(), Date.class);
-            result.setModifiedDate(modifiedDate);
-        }
-        if( node.get("borderDashArray") != null ) {
-            dashArray = mapper.readValue(node.get("borderDashArray").asText(), new TypeReference<List<Integer>>() {});
-            result.setBorderDashArray(dashArray);
-        }
-
-        if( node.get("boundingBox") != null ){
-            boundingBox = mapper.readValue(node.get("boundingBox").toString(), RectF.class);
-            result.setBoundingBox(boundingBox);
-        }
-
-        if( node.get("contents") != null ) {
-            content = node.get("contents").asText();
-            result.setContents(content);
-        }
-        if( node.get("creator") != null ) {
-            creator = node.get("creator").asText();
-            result.setCreator(creator);
-        }
-        if( node.get("name") != null ) {
-            name = node.get("name").asText();
-            result.setName(name);
-        }
-        if( node.get("richText") != null ) {
-            richText = node.get("richText").asText();
-            result.setRichText(richText);
-        }
-
-        if( node.get("borderColor") != null ) {
-            borderColor = node.get("borderColor").asInt();
-            result.setBorderColor(borderColor);
-        }
-        if( node.get("borderWidth") != null ) {
-            borderWidth = node.get("borderWidth").asInt();
-            result.setBorderWidth(borderWidth);
-        }
-        if( node.get("color") != null ) {
-            color = node.get("color").asInt();
-            result.setColor(color);
-        }
-        if( node.get("fillColor") != null ) {
-            fillcolor = node.get("fillColor").asInt();
-            result.setFillColor(fillcolor);
-        }
-
-        return result;
-    }
-
-}
-
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-@JsonTypeInfo(
-        use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY)
-@JsonSubTypes({
-        @JsonSubTypes.Type(value = InkAnnotation.class, name = "InkAnnotation"),
-        @JsonSubTypes.Type(value = FreeTextAnnotation.class, name = "FreeTextAnnotation"),
-        @JsonSubTypes.Type(value = HighlightAnnotation.class, name = "HighlightAnnotation"),
-        @JsonSubTypes.Type(value = NoteAnnotation.class, name = "NoteAnnotation")
-})
-@JsonDeserialize(using = AnnotationDeserializer.class)
-abstract class AnnotationMixin extends Annotation{
-    @JsonCreator
-    AnnotationMixin(@JsonProperty("page") int pageIndex){
-        super(pageIndex);
-    }
-}
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-abstract class SubclassAnnotationMixin {
-    @JsonCreator
-    SubclassAnnotationMixin(@JsonProperty("acName") ac acName){ }
-}
-
-@JsonIgnoreProperties(ignoreUnknown = true, value = {"empty"})
-//@JsonDeserialize(using = CollectionDeserializer.class)
-abstract class IgnoreUnknownMixin{ }
 
 public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotationManager.OnAnnotationCreationModeChangeListener,
         PSPDFAnnotationManager.OnAnnotationEditingModeChangeListener, TextSelectionManager.OnTextSelectionModeChangeListener,
         PSPDFAnnotationManager.OnAnnotationUpdatedListener{
-
-    static final String LOG_TAG = "*** PDFVIEWER TAG ***";
+    private static final String LOG_TAG = PDFViewActivity.class.getName();
     private Uri fileUri;
+    private boolean isOnline;
 
-
-    static ObjectMapper mapper;
-
-
-    static {
-        mapper = new ObjectMapper();
-
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        mapper.addMixIn(RectF.class, IgnoreUnknownMixin.class);
-        mapper.addMixIn(Annotation.class, AnnotationMixin.class);
-
-        mapper.addMixIn(InkAnnotation.class, SubclassAnnotationMixin.class);
-        mapper.addMixIn(FreeTextAnnotation.class, SubclassAnnotationMixin.class);
-        mapper.addMixIn(HighlightAnnotation.class, SubclassAnnotationMixin.class);
-        mapper.addMixIn(NoteAnnotation.class, SubclassAnnotationMixin.class);
-    }
-
-    public static final String EXTRA_URI = "ToolbarsInFragmentActivity.DocumentUri";
+    public static final String EXTRA_URI = "PDFViewAcivity.DocumentUri";
+    public static final String EXTRA_ACCOUNT = "PDFViewAcivity.Account";
+    public static final String EXTRA_GROUP = "PDFViewAcivity.Group";
 
     private static final PSPDFConfiguration config = new PSPDFConfiguration.Builder(BuildConfig.PSPDFKIT_LICENSE_KEY).build();
 
     private PSPDFFragment fragment;
     private ToolbarCoordinatorLayout toolbarCoordinatorLayout;
     private Button annotationCreationButton;
+    private Button annotationClearButton;
+    private Button changeAccountButton;
 
     private AnnotationCreationToolbar annotationCreationToolbar;
     private TextSelectionToolbar textSelectionToolbar;
@@ -283,8 +85,36 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     private AnnotationCreationInspectorController annotationCreationInspectorController;
 
     private NetworkManager networkManager;
+    private HashMap<Annotation, Boolean> hasUpload;
+    private String account;
+    private String groupId;
 
-    private Account account;
+
+    private void testCreateGroup(){
+
+
+        CreateGroupTask createGroupTask = new CreateGroupTask(){
+            @Override
+            protected void onPostExecute(Boolean res) {
+                super.onPostExecute(res);
+                if( res == true ){
+                    createAndShowDialog("Create Group Success", "msg");
+                }else{
+                    createAndShowDialog("Create Group Failed", "msg");
+                }
+            }
+        };
+
+        try{
+            String groupName = "group1";
+            String pdfData = Util.inputStreamToBase64(this.getContentResolver().openInputStream(fileUri));
+            Group group = new Group(groupName, pdfData, fileUri.getLastPathSegment(), account);
+            createGroupTask.execute(group);
+
+        }catch (FileNotFoundException ex){
+            ex.printStackTrace();
+        }
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -293,6 +123,9 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         setSupportActionBar(null);
 
         networkManager = new NetworkManager();
+        isOnline = false;
+        hasUpload = new HashMap<Annotation, Boolean>();
+        account = null;
 
         toolbarCoordinatorLayout = (ToolbarCoordinatorLayout) findViewById(R.id.toolbarCoordinatorLayout);
 
@@ -305,6 +138,11 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         annotationEditingInspectorController = new DefaultAnnotationEditingInspectorController(this, inspectorCoordinatorLayout);
         annotationCreationInspectorController = new DefaultAnnotationCreationInspectorController(this, inspectorCoordinatorLayout);
 
+        account = getIntent().getStringExtra(EXTRA_ACCOUNT);
+        groupId = getIntent().getStringExtra(EXTRA_GROUP);
+        if( groupId != null ){
+            isOnline = true;
+        }
         // The actual document Uri is provided with the launching intent. You can simply change that inside the CustomSearchUiExample class.
         // This is a check that the example is not accidentally launched without a document Uri.
         fileUri = getIntent().getParcelableExtra(EXTRA_URI);
@@ -354,21 +192,27 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
             }
         });
 
-        account = new Account("admin", null);
-
-        String pdfData;
-        registerTask registerTask = new registerTask();
-        createGroupTask createGroupTask = new createGroupTask();
-
-        try{
-            pdfData = Util.getStringFromInputStream(new FileInputStream(new File(fileUri.getPath())));
-            registerTask.execute(account.getId(), account.getCurrentGroupId());
-//            createGroupTask.execute("group id", pdfData, fileUri.getLastPathSegment(),account.getId());
-        }catch (IOException ex){
-            ex.printStackTrace();
-        }
+        annotationClearButton = (Button) findViewById(R.id.clearAnnotation);
+        annotationClearButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AnnotationProvider provider = fragment.getDocument().getAnnotationProvider();
+                for (Annotation annotation : provider.getAnnotations(fragment.getPage())){
+                    provider.removeAnnotationFromPage(annotation);
+                    fragment.notifyAnnotationHasChanged(annotation);
+                }
+                try {
+                    fragment.getDocument().saveIfModified();
+                }catch (IOException ex){
+                    ex.printStackTrace();
+                }
+            }
+        });
 
         updateButtonText();
+
+//        testCreateGroup();
+
     }
 
     @Override
@@ -405,6 +249,66 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         toolbarCoordinatorLayout.displayContextualToolbar(annotationCreationToolbar, true);
         annotationCreationActive = true;
         updateButtonText();
+
+        if( !isOnline ){
+            return;
+        }
+
+        DownloadAnnotationTask task = new DownloadAnnotationTask(){
+            protected void onPostExecute(final String result) {
+                super.onPostExecute(result);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        List<AnnotationData> annotationDatas = (List<AnnotationData>) Util.jsonToObject(result, new TypeReference<List<AnnotationData>>() {});
+                        if( annotationDatas == null || annotationDatas.size() == 0 ){
+                            Toast.makeText(PDFViewActivity.this, "No Annotations to sync", Toast.LENGTH_LONG);
+                            return;
+                        }
+//                        AnnotationProvider provider = fragment.getDocument().getAnnotationProvider();
+                        for (AnnotationData annotationData : annotationDatas){
+                            Annotation annotation = (Annotation) Util.jsonToObject(annotationData.getJsonData(), Annotation.class);
+                            fragment.getDocument().getAnnotationProvider().addAnnotationToPage(annotation);
+                            fragment.notifyAnnotationHasChanged(annotation);
+                        }
+                        try {
+                            fragment.getDocument().saveIfModified();
+                            Log.i(LOG_TAG, "Document is saved");
+                        }catch (IOException ex){
+                            ex.printStackTrace();
+                        }
+                    }
+                });
+//                Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
+            }
+        };
+        task.execute(account, groupId);
+//        runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                if( hasUpload.size() > 0 ){
+//                    for (Annotation an : hasUpload.keySet()){
+//                        if ( fragment.getPage() == an.getPageIndex() ){
+//                            continue;
+//                        }
+//                        fragment.getDocument().getAnnotationProvider().addAnnotationToPage(an);
+//                        fragment.notifyAnnotationHasChanged(an);
+//                    }
+//                }
+////                else{
+////                    NoteAnnotation noteAnnotation = new NoteAnnotation(7, new RectF(100, 100, 100, 100), "TEST CONTENT", NoteAnnotation.COMMENT);
+////                    provider.addAnnotationToPage(noteAnnotation);
+////                    fragment.notifyAnnotationHasChanged(noteAnnotation);
+////                }
+//                try {
+//                    fragment.getDocument().saveIfModified();
+//                }catch (IOException ex){
+//                    ex.printStackTrace();
+//                }
+//            }
+//        });
+
     }
 
     /**
@@ -433,44 +337,55 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         // Also unbind the annotation creation controller from the inspector controller.
         annotationCreationInspectorController.unbindAnnotationCreationController();
 
+        updateButtonText();
+
+        if( !isOnline ){
+            return;
+        }
+
         // get annotations
         AnnotationProvider annotationProvider = fragment.getDocument().getAnnotationProvider();
         List<Annotation> annotationList = annotationProvider.getAnnotations(fragment.getPage());
 
-        String path = null;
-
-        for(Annotation annotation : annotationList){
-            if( annotation == null )
+        for(final Annotation annotation : annotationList){
+            if( annotation == null || hasUpload.get(annotation) == Boolean.TRUE ){
                 continue;
-            path = objectToJson(annotation, "test");
-//            annotationProvider.removeAnnotationFromPage(annotation);
-//            fragment.notifyAnnotationHasChanged(annotation);
+            }
+            String json = Util.objectToJson(annotation);
+            UploadAnnotationTask task = new UploadAnnotationTask(){
+                @Override
+                protected void onPostExecute(String responseMsg) {
+                    super.onPostExecute(responseMsg);
+                    hasUpload.put(annotation, Boolean.TRUE);
+                    Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
+                }
+            };
+            task.execute(new AnnotationData(groupId, account, json));
         }
         try{
             fragment.getDocument().saveIfModified();
         }catch (IOException ex){
-
+            ex.printStackTrace();
         }
-
-        Annotation annotation = (Annotation) jsonToObject(path, Annotation.class);
-
-        if( annotation != null ){
+//
+//        Annotation annotation = (Annotation) Util.jsonToObject(path, Annotation.class);
+//
+//        if( annotation != null ){
 //            annotationProvider.addAnnotationToPage(annotation);
 //            fragment.notifyAnnotationHasChanged(annotation);
-        }else{
-            Toast.makeText(this, "annotation must not be null", Toast.LENGTH_LONG);
-        }
-
-        try{
-            fragment.getDocument().saveIfModified();
-        }catch (IOException ex){
-
-        }
+//        }else{
+//            Toast.makeText(this, "annotation must not be null", Toast.LENGTH_LONG);
+//        }
+//
+//        try{
+//            fragment.getDocument().saveIfModified();
+//        }catch (IOException ex){
+//
+//        }
 
 //        fragment.getDocument().saveIfModifiedAsync()
 //                .observeOn(AndroidSchedulers.mainThread());
 
-        updateButtonText();
     }
 
     /**
@@ -531,128 +446,83 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     }
 
 
-    public String objectToJson(Object obj, String filePath){
-
-        try{
-            File file = File.createTempFile(filePath, "json", this.getCacheDir());
-            mapper.writeValue(file, obj);
-            return file.getAbsolutePath();
-        }
-        catch (IOException ex) {
-            ex.printStackTrace();
-            return null;
-        }
-    }
-
-
-    public Object jsonToObject(String absolutePath, Class cls){
-        try{
-            File file = new File(absolutePath);
-            Scanner in = new Scanner(new FileReader(file));
-            Object obj = mapper.readValue(file, cls);
-            Log.v(LOG_TAG, "filepath = " + absolutePath + ", content = " + in.toString());
-            return obj;
-        }
-
-        catch (IOException ex){
-            ex.printStackTrace();
-            return null;
-        }
-    }
-
-    private class syncAnnotationTask extends AsyncTask<String, Void, String>{
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected String doInBackground(String... params){
-            return networkManager.postJson(networkManager.URL_ANNOTATION, "asdasd");
-        }
-
-        @Override
-        protected void onPostExecute(String responseMsg){
-            Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
-        }
-    }
-
-    private class registerTask extends AsyncTask<String, Void, String>{
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected String doInBackground(String... params){
-            try{
-                networkManager.postJson(networkManager.URL_ACCOUNT,
-                        mapper.writeValueAsString(new Account(params[0], params[1]))
-                );
-
-            }catch (JsonProcessingException ex){
-                ex.printStackTrace();
+    /**
+     * Creates a dialog and shows it
+     *
+     * @param exception
+     *            The exception to show in the dialog
+     * @param title
+     *            The dialog title
+     */
+    private void createAndShowDialogFromTask(final Exception exception, String title) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                createAndShowDialog(exception, "Error");
             }
-            return "Register Finished";
-        }
-
-        @Override
-        protected void onPostExecute(String responseMsg){
-            Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
-        }
+        });
     }
 
-    private class createGroupTask extends AsyncTask<String, Void, String>{
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }       // @MainThread
-
-        /**
-         *
-         * @param params is [GroupID, FileData, FileName, Creator ].
-         */
-        @Override
-        protected String doInBackground(String... params) {         // WorkerThread
-            if( params.length < 4 )
-                return "Not enough params in create group task";
-
-            try{
-                InputStream is = new FileInputStream(new File(fileUri.getPath()));
-
-                networkManager.postJson(networkManager.URL_GROUP,
-                        mapper.writeValueAsString(
-//                        new Group(params[0], Util.getStringFromInputStream(is), fileUri.getLastPathSegment())
-                        new Group(params[0], params[1], params[2], params[3]))
-                );
-
-                return "Create Group Finish";
-            }catch (FileNotFoundException ex){
-                ex.printStackTrace();
-            }catch (IOException ex ){
-                ex.printStackTrace();
-            }
-
-            return "Create Group Aborted";
+    /**
+     * Creates a dialog and shows it
+     *
+     * @param exception
+     *            The exception to show in the dialog
+     * @param title
+     *            The dialog title
+     */
+    private void createAndShowDialog(Exception exception, String title) {
+        Throwable ex = exception;
+        if(exception.getCause() != null){
+            ex = exception.getCause();
         }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-            super.onProgressUpdate(values);
-        }
-
-        @Override
-        protected void onPostExecute(String s) {        // @MainThread
-            super.onPostExecute(s);
-            Toast.makeText(PDFViewActivity.this, s, Toast.LENGTH_LONG);
-        }
+        createAndShowDialog(ex.getMessage(), title);
     }
 
-    private void authenticate(){
-//        ListenableFuture<MobileServiceUser> mLogin = mClient.login(MobileServiceAuthenticationProvider.Google);
+    /**
+     * Creates a dialog and shows it
+     *
+     * @param message
+     *            The dialog message
+     * @param title
+     *            The dialog title
+     */
+    private void createAndShowDialog(final String message, final String title) {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        builder.setMessage(message);
+        builder.setTitle(title);
+        builder.create().show();
     }
+
+//
+//    private class registerTask extends AsyncTask<String, Void, String>{
+//
+//        @Override
+//        protected void onPreExecute() {
+//            super.onPreExecute();
+//        }
+//
+//        @Override
+//        protected String doInBackground(String... params){
+//            try{
+//                    networkManager.postJson(Util.URL_ACCOUNT,
+//                        mapper.writeValueAsString(new Account(params[0], params[1]))
+//                );
+//
+//            }catch (JsonProcessingException ex){
+//                ex.printStackTrace();
+//            }
+//            return "Register Finished";
+//        }
+//
+//        @Override
+//        protected void onPostExecute(String responseMsg){
+//            Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
+//        }
+//    }
+
+
 
 }

@@ -8,6 +8,11 @@
     tools:ignore="UnusedAttribute"
     tools:context="zju.homework.pdfviewer.Activitiy.PDFViewActivity">
 
+    <FrameLayout
+        android:id="@+id/fragmentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
     <Button
         android:id="@+id/openAnnotationEditing"
         android:layout_width="wrap_content"
@@ -15,6 +20,24 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:elevation="4dp" />
+
+    <Button
+        android:id="@+id/clearAnnotation"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|left"
+        android:layout_margin="16dp"
+        android:elevation="4dp"
+        android:text="clear"/>
+
+    <!--<Button-->
+        <!--android:id="@+id/changeAccount"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_gravity="bottom|center"-->
+        <!--android:layout_margin="16dp"-->
+        <!--android:elevation="4dp"-->
+        <!--android:text="change"/>-->
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -32,12 +55,6 @@
         android:id="@+id/inspectorCoordinatorLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:elevation="16dp" >
-
-        <FrameLayout
-            android:id="@+id/fragmentContainer"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </com.pspdfkit.ui.inspector.PropertyInspectorCoordinatorLayout>
+        android:elevation="16dp" />
 
 </FrameLayout>
