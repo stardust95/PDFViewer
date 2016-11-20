@@ -4,6 +4,9 @@ package zju.homework.pdfviewer.Utils;
 import android.accounts.NetworkErrorException;
 import android.util.Log;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,6 +28,47 @@ public class NetworkManager {
     final static int MAX_BUFFER = 1024;
 
     public NetworkManager(){ }
+
+    public boolean getDocument(String addr, String filepath){
+        try {
+            URL url = new URL(addr);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("User-Agent", "");
+            connection.setDoInput(true);
+            connection.connect();
+
+            int responseCode = connection.getResponseCode();
+            if( responseCode == RESPONSE_OK ){
+                InputStream is = connection.getInputStream();
+                OutputStream os = new FileOutputStream(filepath);
+                try{
+                    int read = 0;
+                    byte[] bytes = new byte[1024];
+                    while ( (read = is.read(bytes)) != -1 ){
+                        os.write(bytes, 0, read);
+                    }
+                }catch (IOException ex){
+                    ex.printStackTrace();
+                    return false;
+                }finally {
+                    try {
+                        is.close();
+                        os.close();
+                    }catch (IOException ex){
+                        ex.printStackTrace();
+                        return false;
+                    }
+                }
+
+            }
+
+        }catch (IOException ex){
+            ex.printStackTrace();
+            return false;
+        }
+        return true;
+    }
 
     public String getJson(String addr){
 

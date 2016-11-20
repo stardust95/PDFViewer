@@ -11,12 +11,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
 
 import zju.homework.pdfviewer.Java.Group;
 import zju.homework.pdfviewer.R;
+import zju.homework.pdfviewer.Tasks.DownloadDocumentTask;
 import zju.homework.pdfviewer.Tasks.JoinGroupTask;
 import zju.homework.pdfviewer.Utils.DrawerArrowDrawable;
 import zju.homework.pdfviewer.Java.Account;
@@ -44,10 +46,10 @@ public class MainActivity extends AppCompatActivity {
                 Util.showOpenFileDialog(MainActivity.this);
             }
         });
-
+        testDownload();
         //ActivityCollector.addActivity(this);
 //        testJoinGroup();
-        Util.showOpenFileDialog(MainActivity.this);
+//        Util.showOpenFileDialog(MainActivity.this);
 //        Util.userLogin(MainActivity.this);
     }
 
@@ -103,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
         if( requestCode == Util.REQUEST_OPEN_DOCUMENT ) {
             if( resultCode == Activity.RESULT_OK && data != null) {
                 final String groupid = "group1";
-                final String account = "admin15";
+                final String account = "admin315";
 
                 Uri uri = data.getData();
                 Intent intent = new Intent(MainActivity.this, PDFViewActivity.class);
@@ -124,6 +126,34 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void testDownload(){
+
+        try {
+            final File tmpFile = File.createTempFile("test", ".pdf", getCacheDir());
+
+            DownloadDocumentTask task = new DownloadDocumentTask(){
+                @Override
+
+                protected void onPostExecute(Boolean responseMsg) {
+                    super.onPostExecute(responseMsg);
+                    if( responseMsg == Boolean.TRUE ){
+                        Intent intent = new Intent(MainActivity.this, PDFViewActivity.class);
+                        intent.putExtra(PDFViewActivity.EXTRA_URI, Uri.fromFile(tmpFile));
+//                    intent.putExtra(PDFViewActivity.EXTRA_ACCOUNT, mAccount.getId());
+                        //添加email
+                        Toast.makeText(MainActivity.this, "Download Document Success", Toast.LENGTH_LONG);
+                        MainActivity.this.startActivity(intent);
+                    }else {
+                        Toast.makeText(MainActivity.this, "Download Document Failed", Toast.LENGTH_LONG);
+                    }
+                }
+            };
+            task.execute("https://www2.ed.gov/parents/academic/help/homework/homework.pdf", tmpFile.getAbsolutePath());
+        }catch (IOException ex){
+            ex.printStackTrace();
+        }
+
+    }
 
     private void testJoinGroup(){
 

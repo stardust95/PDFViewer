@@ -61,6 +61,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     private static final String LOG_TAG = PDFViewActivity.class.getName();
     private Uri fileUri;
     private boolean isOnline;
+    private boolean isWaiting;
 
     public static final String EXTRA_URI = "PDFViewAcivity.DocumentUri";
     public static final String EXTRA_ACCOUNT = "PDFViewAcivity.Account";
@@ -257,57 +258,34 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         DownloadAnnotationTask task = new DownloadAnnotationTask(){
             protected void onPostExecute(final String result) {
                 super.onPostExecute(result);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        List<AnnotationData> annotationDatas = (List<AnnotationData>) Util.jsonToObject(result, new TypeReference<List<AnnotationData>>() {});
-                        if( annotationDatas == null || annotationDatas.size() == 0 ){
-                            Toast.makeText(PDFViewActivity.this, "No Annotations to sync", Toast.LENGTH_LONG);
-                            return;
-                        }
+                List<AnnotationData> annotationDatas = (List<AnnotationData>) Util.jsonToObject(result, new TypeReference<List<AnnotationData>>() {});
+                if( annotationDatas == null || annotationDatas.size() == 0 ){
+                    Toast.makeText(PDFViewActivity.this, "No Annotations to sync", Toast.LENGTH_LONG);
+                    return;
+                }
 //                        AnnotationProvider provider = fragment.getDocument().getAnnotationProvider();
-                        for (AnnotationData annotationData : annotationDatas){
-                            Annotation annotation = (Annotation) Util.jsonToObject(annotationData.getJsonData(), Annotation.class);
-                            fragment.getDocument().getAnnotationProvider().addAnnotationToPage(annotation);
-                            fragment.notifyAnnotationHasChanged(annotation);
-                        }
-                        try {
-                            fragment.getDocument().saveIfModified();
-                            Log.i(LOG_TAG, "Document is saved");
-                        }catch (IOException ex){
-                            ex.printStackTrace();
-                        }
-                    }
-                });
-//                Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
+                for (AnnotationData annotationData : annotationDatas){
+                    Annotation annotation = (Annotation) Util.jsonToObject(annotationData.getJsonData(), Annotation.class);
+                    hasUpload.put(annotation, Boolean.TRUE);
+                    fragment.getDocument().getAnnotationProvider().addAnnotationToPage(annotation);
+                    fragment.notifyAnnotationHasChanged(annotation);
+                }
+                try {
+                    fragment.getDocument().saveIfModified();
+                    Log.i(LOG_TAG, "Document is saved");
+                    Toast.makeText(PDFViewActivity.this, "Document is saved", Toast.LENGTH_LONG);
+                }catch (IOException ex){
+                    ex.printStackTrace();
+                }
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//
+//                    }
+//                });
             }
         };
         task.execute(account, groupId);
-//        runOnUiThread(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                if( hasUpload.size() > 0 ){
-//                    for (Annotation an : hasUpload.keySet()){
-//                        if ( fragment.getPage() == an.getPageIndex() ){
-//                            continue;
-//                        }
-//                        fragment.getDocument().getAnnotationProvider().addAnnotationToPage(an);
-//                        fragment.notifyAnnotationHasChanged(an);
-//                    }
-//                }
-////                else{
-////                    NoteAnnotation noteAnnotation = new NoteAnnotation(7, new RectF(100, 100, 100, 100), "TEST CONTENT", NoteAnnotation.COMMENT);
-////                    provider.addAnnotationToPage(noteAnnotation);
-////                    fragment.notifyAnnotationHasChanged(noteAnnotation);
-////                }
-//                try {
-//                    fragment.getDocument().saveIfModified();
-//                }catch (IOException ex){
-//                    ex.printStackTrace();
-//                }
-//            }
-//        });
 
     }
 
@@ -367,25 +345,6 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         }catch (IOException ex){
             ex.printStackTrace();
         }
-//
-//        Annotation annotation = (Annotation) Util.jsonToObject(path, Annotation.class);
-//
-//        if( annotation != null ){
-//            annotationProvider.addAnnotationToPage(annotation);
-//            fragment.notifyAnnotationHasChanged(annotation);
-//        }else{
-//            Toast.makeText(this, "annotation must not be null", Toast.LENGTH_LONG);
-//        }
-//
-//        try{
-//            fragment.getDocument().saveIfModified();
-//        }catch (IOException ex){
-//
-//        }
-
-//        fragment.getDocument().saveIfModifiedAsync()
-//                .observeOn(AndroidSchedulers.mainThread());
-
     }
 
     /**
