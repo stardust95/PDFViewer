@@ -9,12 +9,10 @@
     android:orientation="vertical"
     tools:context="zju.homework.pdfviewer.Activitiy.MainActivity">
 
-    <!-- Action-bar looking view -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="@dimen/actionbar_dimen"
-        android:background="@color/dark_gray"
-        >
+        android:background="@color/dark_gray">
 
         <ImageView
             android:id="@+id/drawer_indicator"
@@ -31,12 +29,12 @@
             android:text="Super PDF"
             android:gravity="center"
             android:typeface="monospace"
-            android:textStyle="bold"
-            android:id="@+id/textView"/>
+            android:textStyle="bold"/>
 
     </FrameLayout>
 
     <!-- Content -->
+    <!-- Action-bar looking view -->
     <android.support.v4.widget.DrawerLayout
         android:id="@+id/drawer_layout"
         android:layout_width="match_parent"
@@ -44,32 +42,102 @@
         android:layout_weight="1"
         >
 
-        <Button
-            android:id="@+id/test_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="createTable"/>
-
         <!--历史记录-->
-        <ListView
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="12dp">
-
-        </ListView>
-
-        <ListView
-            android:id="@+id/drawer_content"
-            android:layout_width="240dp"
             android:layout_height="match_parent"
-            android:layout_gravity="start"
-            android:gravity="center"
-            android:textColor="@color/light_gray"
-            android:background="@color/darker_gray"
-            />
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/open_new_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="20dp"
+                android:layout_marginRight="20dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="10dp"
+                android:text="Open PDF File"
+                android:textAllCaps="false"
+                android:typeface="monospace"
+                android:textStyle="bold"
+                android:textColor="@color/colorAccent"/>
+            <Button
+                android:id="@+id/open_online_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="20dp"
+                android:layout_marginRight="20dp"
+                android:layout_marginBottom="20dp"
+                android:text="Open PDF URL"
+                android:textAllCaps="false"
+                android:typeface="monospace"
+                android:textStyle="bold"
+                android:textColor="@color/colorAccent"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="12dp"
+                    android:text="Histories"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:typeface="sans"
+                    android:layout_weight="1"/>
+
+                <Button
+                    android:id="@+id/clear_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.5"
+                    android:layout_marginRight="20dp"
+                    android:layout_marginEnd="20dp"
+                    android:text="Clear histories"
+                    android:textAllCaps="false"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/main_progress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:orientation="vertical">
+                <ProgressBar
+                    style="?android:attr/progressBarStyleLarge"
+                    android:layout_height="wrap_content"
+                    android:layout_width="match_parent"
+                    android:layout_margin="20dp"
+                    android:layout_gravity="center"/>
+                <TextView
+                    android:id="@+id/progress_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"/>
+            </LinearLayout>
+
+            <ListView
+                android:id="@+id/history_list_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="18dp"
+                android:padding="5dp"
+                android:divider="#998413"
+                android:dividerHeight="0.5px">
+
+            </ListView>
+
+        </LinearLayout>
+
+        <include layout="@layout/slide_menu">
+
+        </include>
 
 
     </android.support.v4.widget.DrawerLayout>
-
 
 </LinearLayout>

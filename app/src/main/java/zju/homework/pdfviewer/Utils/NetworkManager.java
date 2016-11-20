@@ -4,16 +4,12 @@ package zju.homework.pdfviewer.Utils;
 import android.accounts.NetworkErrorException;
 import android.util.Log;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
-import zju.homework.pdfviewer.Activitiy.Util;
 
 /**
  * Created by stardust on 2016/11/16.

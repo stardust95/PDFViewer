@@ -10,11 +10,11 @@ import zju.homework.pdfviewer.Utils.NetworkManager;
 import zju.homework.pdfviewer.Utils.Util;
 
 /**
- * Created by stardust on 2016/11/18.
+ * Created by stardust on 2016/11/20.
  */
 
 
-public class CreateGroupTask extends AsyncTask<Object, Void, Object> {
+public class QuitGroupTask extends AsyncTask<Object, Void, Object> {
 
     @Override
     protected void onPreExecute() {
@@ -33,15 +33,16 @@ public class CreateGroupTask extends AsyncTask<Object, Void, Object> {
         Group group = (Group)params[0];
 
         NetworkManager networkManager = new NetworkManager();
-        String result = networkManager.postJson(Util.URL_GROUP,
+        String result = networkManager.postJson(Util.URL_GROUP + "/quit",
                 Util.objectToJson(
                         group
-        ));
+                ));
         if( result == null ){
             return null;
         }
         ResponseMsg responseMsg = (ResponseMsg) Util.jsonToObject(result, ResponseMsg.class);
-        if( responseMsg != null && responseMsg.getMessage().equals("Create Group Success") ){
+
+        if( responseMsg != null && responseMsg.getMessage().equals("Quit Group Success") ){
             return group;
         }else{
             return null;

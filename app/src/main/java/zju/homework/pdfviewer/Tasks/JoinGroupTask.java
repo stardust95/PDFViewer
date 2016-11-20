@@ -6,7 +6,7 @@ import java.security.InvalidParameterException;
 
 import zju.homework.pdfviewer.Java.Group;
 import zju.homework.pdfviewer.Utils.NetworkManager;
-import zju.homework.pdfviewer.Activitiy.Util;
+import zju.homework.pdfviewer.Utils.Util;
 
 /**
  * Created by stardust on 2016/11/19.

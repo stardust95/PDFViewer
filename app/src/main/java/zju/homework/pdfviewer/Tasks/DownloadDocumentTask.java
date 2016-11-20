@@ -4,8 +4,6 @@ import android.os.AsyncTask;
 
 import java.security.InvalidParameterException;
 
-import zju.homework.pdfviewer.Activitiy.Util;
-import zju.homework.pdfviewer.Java.AnnotationData;
 import zju.homework.pdfviewer.Utils.NetworkManager;
 
 /**

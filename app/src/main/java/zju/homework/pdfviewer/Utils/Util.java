@@ -1,4 +1,4 @@
-package zju.homework.pdfviewer.Activitiy;
+package zju.homework.pdfviewer.Utils;
 
 import android.Manifest;
 import android.app.Activity;
@@ -13,10 +13,8 @@ import android.support.v4.content.ContextCompat;
 import android.util.Base64;
 import android.util.Log;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.pspdfkit.annotations.Annotation;
 import com.pspdfkit.annotations.FreeTextAnnotation;
 import com.pspdfkit.annotations.HighlightAnnotation;
@@ -31,9 +29,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import zju.homework.pdfviewer.Activitiy.LoginActivity;
 import zju.homework.pdfviewer.Java.AnnotationMixin;
 import zju.homework.pdfviewer.Java.IgnoreUnknownMixin;
 import zju.homework.pdfviewer.Java.SubclassAnnotationMixin;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Random;
 
 
 /**
@@ -42,14 +45,17 @@ import zju.homework.pdfviewer.Java.SubclassAnnotationMixin;
 
 public class Util {
 
-    private static final String HOST = "http://123.206.216.203:3000";
+//    private static final String HOST = "http://123.206.216.203:3000";
+    private static final String HOST = "http://222.205.46.130:3000";
     public static final String URL_ACCOUNT = HOST + "/accounts";
     public static final String URL_ANNOTATION = HOST + "/annotations";
     public static final String URL_GROUP = HOST + "/groups";
 
+
     public static final int REQUEST_OPEN_DOCUMENT = 1;
     public static final int REQUEST_ASK_FOR_PERMISSION = 2;
     public static final int REQUEST_LOGIN = 3;
+    public static final int REQUEST_CREATE_GROUP = 4;
 
     public static final String LOG_TAG = Util.class.getName();
 
@@ -88,13 +94,13 @@ public class Util {
         return true;
     }
 
-    public static void showOpenFileDialog(@NonNull Activity activity){
+    public static void showOpenFileDialog(@NonNull Activity activity, int requestCode){
         Intent intent = new Intent(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT ?
                 Intent.ACTION_OPEN_DOCUMENT : Intent.ACTION_GET_CONTENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
 
-        activity.startActivityForResult(intent, REQUEST_OPEN_DOCUMENT);
+        activity.startActivityForResult(intent, requestCode);
 
     }
 
@@ -150,6 +156,17 @@ public class Util {
             ex.printStackTrace();
         }
         return Uri.fromFile(tmpFile);
+    }
+
+    //获取当前时间
+    public static String getTime() {
+        Date now = new Date();
+        return getTimeSimple(now);
+    }
+
+    public static String getTimeSimple(Date date){
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        return dateFormat.format(date);
     }
 
 //    private static byte[] loadFile(File file) throws IOException {
@@ -217,7 +234,16 @@ public class Util {
             return null;
         }
     }
+    public static int randInt(int min, int max) {
 
+        Random rand = new Random();
+
+        // nextInt is normally exclusive of the top value,
+        // so add 1 to make it inclusive
+        int randomNum = rand.nextInt((max - min) + 1) + min;
+
+        return randomNum;
+    }
 //
 //    public static String objectToJson(Object obj, String filePath){
 //

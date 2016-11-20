@@ -10,4 +10,7 @@
     <color name="dark_gray">#3d454c</color>
     <color name="dark_gray_pressed">#373e44</color>
     <color name="darker_gray">#1f2226</color>
+
+    <color name="yellow">#ffff55</color>
+    <color name="divider">#ffffff</color>
 </resources>

@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
-import zju.homework.pdfviewer.Activitiy.Util;
+import zju.homework.pdfviewer.Utils.Util;
 
 /**
  * Created by stardust on 2016/11/18.

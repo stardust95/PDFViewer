@@ -27,17 +27,15 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
 
-import zju.homework.pdfviewer.Java.Account;
 import zju.homework.pdfviewer.R;
+import zju.homework.pdfviewer.Tasks.UserRegisterTask;
 import zju.homework.pdfviewer.Utils.ActivityCollector;
-import zju.homework.pdfviewer.Utils.NetworkManager;
+import zju.homework.pdfviewer.Tasks.UserLoginTask;
 
 import static android.Manifest.permission.READ_CONTACTS;
 
@@ -74,9 +72,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private View mProgressView;
     private View mLoginFormView;
 
-    NetworkManager networkManager;
-    ObjectMapper mapper;
-
     @Override
     public void onBackPressed() {   //退出全部活动
         ActivityCollector.finishAll();
@@ -86,10 +81,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ActivityCollector.addActivity(this);
+
         setContentView(R.layout.activity_login);
-
-        networkManager = new NetworkManager();
-
         // Set up the login form.
         mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
         populateAutoComplete();
@@ -117,7 +110,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         //注册按钮
         Button mEmailRegisterButton = (Button) findViewById(R.id.email_register_button);
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
+        mEmailRegisterButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 attemptRegister();
@@ -183,7 +176,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mPasswordView.setError(null);
 
         // Store values at the time of the login attempt.
-        String email = mEmailView.getText().toString();
+        final String email = mEmailView.getText().toString();
         String password = mPasswordView.getText().toString();
 
         boolean cancel = false;
@@ -217,8 +210,41 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mAuthTask = new UserLoginTask();
+
+            mAuthTask = new UserLoginTask( ){
+                @Override
+                public void onCancelled() {
+                    super.onCancelled();
+                    mAuthTask = null;
+                    showProgress(false);
+                }
+
+                @Override
+                public void onPostExecute(final String result) {
+                    super.onPostExecute(result);
+                    mAuthTask = null;
+                    showProgress(false);
+
+                    if (result.equals("Login Success")) {
+                        //传回数据给主活动
+                        Intent intent = new Intent();
+                        intent.putExtra(GET_EMAIL_KEY, email);
+                        setResult(RESULT_OK, intent);
+
+                        finish();
+                    } else if( result.equals("Password Incorrect") ){
+                        mPasswordView.setError(result);
+                        mPasswordView.requestFocus();
+                        onCancelled();
+                    } else {
+                        mEmailView.setError(result);
+                        mEmailView.requestFocus();
+                        onCancelled();
+                    }
+                }
+            };
             mAuthTask.execute(email, password);
+            showProgress(true);
         }
     }
 
@@ -268,9 +294,32 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
+
             showProgress(true);
-            mRegisterTask = new UserRegisterTask(email, password);
-            mRegisterTask.execute((Void) null);
+            mRegisterTask = new UserRegisterTask(){
+                @Override
+                public void onPostExecute(String result) {
+                    super.onPostExecute(result);
+
+                    showProgress(false);
+                    if( result.equals("Account Register Success") ){
+                        Toast.makeText(LoginActivity.this, result, Toast.LENGTH_LONG).show();
+                    }else{
+                        mEmailView.setError(result);
+                        mEmailView.requestFocus();
+                        onCancelled();
+                    }
+                }
+
+                @Override
+                public void onCancelled() {
+                    super.onCancelled();
+                    showProgress(false);
+                    mRegisterTask = null;
+                }
+            };
+            mRegisterTask.execute( email, password );
+            showProgress(true);
         }
     }
 
@@ -375,120 +424,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         int IS_PRIMARY = 1;
     }
 
-
     //注册新用户
-    public class UserRegisterTask extends AsyncTask<Void, Void, Boolean> {
-
-        private final String mEmail;
-        private final String mPassword;
-
-        UserRegisterTask(String email, String password) {
-            mEmail = email;
-            mPassword = password;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-
-            try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-            /**在这里写添加新用户
-             * 添加成功返回TRUE，如果用户已经存在返回FALSE
-             **/
-
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            showProgress(false);
-
-            if (success) {
-                //传回数据给主活动
-                Intent intent = new Intent();
-                intent.putExtra(GET_EMAIL_KEY, new String(mEmail));
-                setResult(RESULT_OK, intent);
-
-                finish();
-            } else {    //错误的情况是用户已经存在，不需要再注册
-                mEmailView.setError("This user has registered");
-                mEmailView.requestFocus();
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mAuthTask = null;
-            showProgress(false);
-        }
-    }
-
-
-    //登录
-    public class UserLoginTask extends AsyncTask<Object, Void, Boolean> {
-
-        /**
-         *
-         * @param params is [ Account ] .
-         */
-        @Override
-        protected Boolean doInBackground(Object... params) {
-            // TODO: attempt authentication against a network service.
-            if( params.length < 1 )
-                throw  new InvalidParameterException("Not enough params in login task") ;
-
-            Account account = (Account) params[0];
-            // Simulate network access.
-//                Thread.sleep(2000);
-            String result = null;
-            NetworkManager networkManager = new NetworkManager();
-//            ResponseMsg<Object> result = networkManager.postJsonObject(Util.URL_ACCOUNT, Util.objectToJson(
-//                    account
-//            ));
-
-            /**
-             * 在这里写从服务检查密码正确或者注册新用户
-             * 没问题就返回TRUE， 否则返回FALSE
-             * */
-//            if( result.getMessage().equals("Login Success") ){
-            if( result != null ) {
-                return true;
-            }else{
-                return false;
-            }
-
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            showProgress(false);
-
-            if (success) {
-                //传回数据给主活动
-                Intent intent = new Intent();
-//                intent.putExtra(GET_EMAIL_KEY, new Account(new String(mEmail)));
-                setResult(RESULT_OK, intent);
-
-                finish();
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mAuthTask = null;
-            showProgress(false);
-        }
-    }
 
 }
 

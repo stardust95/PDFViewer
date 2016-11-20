@@ -1,7 +1,6 @@
 package zju.homework.pdfviewer.Activitiy;
 
 import android.content.DialogInterface;
-import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -10,18 +9,16 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.view.animation.AnticipateOvershootInterpolator;
 import android.widget.Button;
 import android.widget.Toast;
 
-import com.fasterxml.jackson.core.json.UTF8DataInputJsonParser;
-import com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.pspdfkit.annotations.Annotation;
 import com.pspdfkit.annotations.AnnotationProvider;
-import com.pspdfkit.annotations.NoteAnnotation;
 import com.pspdfkit.configuration.PSPDFConfiguration;
+import com.pspdfkit.ui.PSPDFActivity;
 import com.pspdfkit.ui.PSPDFFragment;
+import com.pspdfkit.ui.PSPDFViews;
 import com.pspdfkit.ui.inspector.PropertyInspectorCoordinatorLayout;
 import com.pspdfkit.ui.inspector.annotation.AnnotationCreationInspectorController;
 import com.pspdfkit.ui.inspector.annotation.AnnotationEditingInspectorController;
@@ -29,6 +26,7 @@ import com.pspdfkit.ui.inspector.annotation.DefaultAnnotationCreationInspectorCo
 import com.pspdfkit.ui.inspector.annotation.DefaultAnnotationEditingInspectorController;
 import com.pspdfkit.ui.special_mode.controller.AnnotationCreationController;
 import com.pspdfkit.ui.special_mode.controller.AnnotationEditingController;
+import com.pspdfkit.ui.special_mode.controller.AnnotationSelectionController;
 import com.pspdfkit.ui.special_mode.controller.TextSelectionController;
 import com.pspdfkit.ui.special_mode.manager.PSPDFAnnotationManager;
 import com.pspdfkit.ui.special_mode.manager.TextSelectionManager;
@@ -37,27 +35,23 @@ import com.pspdfkit.ui.toolbar.AnnotationEditingToolbar;
 import com.pspdfkit.ui.toolbar.TextSelectionToolbar;
 import com.pspdfkit.ui.toolbar.ToolbarCoordinatorLayout;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.sql.Time;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
+import java.util.Timer;
 
 import zju.homework.pdfviewer.BuildConfig;
 import zju.homework.pdfviewer.Java.AnnotationData;
-import zju.homework.pdfviewer.Java.Group;
 import zju.homework.pdfviewer.R;
-import zju.homework.pdfviewer.Tasks.CreateGroupTask;
 import zju.homework.pdfviewer.Tasks.DownloadAnnotationTask;
 import zju.homework.pdfviewer.Tasks.UploadAnnotationTask;
 import zju.homework.pdfviewer.Utils.NetworkManager;
+import zju.homework.pdfviewer.Utils.Util;
 
 
 public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotationManager.OnAnnotationCreationModeChangeListener,
         PSPDFAnnotationManager.OnAnnotationEditingModeChangeListener, TextSelectionManager.OnTextSelectionModeChangeListener,
-        PSPDFAnnotationManager.OnAnnotationUpdatedListener{
+        PSPDFAnnotationManager.OnAnnotationUpdatedListener, PSPDFAnnotationManager.OnAnnotationSelectedListener{
     private static final String LOG_TAG = PDFViewActivity.class.getName();
     private Uri fileUri;
     private boolean isOnline;
@@ -74,6 +68,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     private Button annotationCreationButton;
     private Button annotationClearButton;
     private Button changeAccountButton;
+    private Button syncAnnotationButton;
 
     private AnnotationCreationToolbar annotationCreationToolbar;
     private TextSelectionToolbar textSelectionToolbar;
@@ -89,33 +84,6 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     private HashMap<Annotation, Boolean> hasUpload;
     private String account;
     private String groupId;
-
-
-    private void testCreateGroup(){
-
-
-        CreateGroupTask createGroupTask = new CreateGroupTask(){
-            @Override
-            protected void onPostExecute(Boolean res) {
-                super.onPostExecute(res);
-                if( res == true ){
-                    createAndShowDialog("Create Group Success", "msg");
-                }else{
-                    createAndShowDialog("Create Group Failed", "msg");
-                }
-            }
-        };
-
-        try{
-            String groupName = "group1";
-            String pdfData = Util.inputStreamToBase64(this.getContentResolver().openInputStream(fileUri));
-            Group group = new Group(groupName, pdfData, fileUri.getLastPathSegment(), account);
-            createGroupTask.execute(group);
-
-        }catch (FileNotFoundException ex){
-            ex.printStackTrace();
-        }
-    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -177,6 +145,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         fragment.registerAnnotationCreationModeChangeListener(this);
         fragment.registerAnnotationEditingModeChangeListener(this);
         fragment.registerTextSelectionModeChangeListener(this);
+        fragment.registerAnnotationSelectedListener(this);
 
         // annotation listener
         fragment.registerAnnotationUpdatedListener(this);
@@ -199,6 +168,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
             public void onClick(View v) {
                 AnnotationProvider provider = fragment.getDocument().getAnnotationProvider();
                 for (Annotation annotation : provider.getAnnotations(fragment.getPage())){
+                    hasUpload.put(annotation, Boolean.FALSE);
                     provider.removeAnnotationFromPage(annotation);
                     fragment.notifyAnnotationHasChanged(annotation);
                 }
@@ -210,10 +180,121 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
             }
         });
 
+        syncAnnotationButton = (Button)findViewById(R.id.syncAnnotation);
+        syncAnnotationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if( !isOnline ){
+                    Toast.makeText(PDFViewActivity.this, "Your're offline", Toast.LENGTH_LONG).show();
+                }
+                uploadAnnotation();
+                downloadAnnotation();
+            }
+        });
+
         updateButtonText();
 
-//        testCreateGroup();
+    }
 
+    private void uploadAnnotation(){
+        if( !isOnline )
+            return;
+
+        // get annotations
+        AnnotationProvider annotationProvider = fragment.getDocument().getAnnotationProvider();
+        List<Annotation> annotationList = annotationProvider.getAnnotations(fragment.getPage());
+
+        for(final Annotation annotation : annotationList){
+            if( annotation == null || hasUpload.get(annotation) == Boolean.TRUE ){
+                continue;
+            }
+            String json = Util.objectToJson(annotation);
+            annotation.setCreator(account);
+            UploadAnnotationTask task = new UploadAnnotationTask(){
+                @Override
+                protected void onPostExecute(String responseMsg) {
+                    super.onPostExecute(responseMsg);
+                    if( responseMsg == "No Such Group" ){
+//                        Toast.makeText(PDFViewActivity.this, "Group Has Close", Toast.LENGTH_LONG).show();
+                        new AlertDialog.Builder(PDFViewActivity.this).setMessage("Group Has Closed")
+                                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        PDFViewActivity.super.onBackPressed();
+                                    }
+                                }).show();
+                        return;
+                    }else{
+                        hasUpload.put(annotation, Boolean.TRUE);
+                        Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG).show();
+                    }
+                }
+            };
+            task.execute(new AnnotationData(groupId, account, json));
+        }
+        try{
+            fragment.getDocument().saveIfModified();
+        }catch (IOException ex){
+            ex.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if( !isOnline ) {
+            super.onBackPressed();
+            return;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(PDFViewActivity.this);
+        builder.setMessage("You're online, return to main page ?");
+        builder.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                PDFViewActivity.this.finish();
+            }
+        });
+        builder.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        builder.show();
+    }
+
+    private void downloadAnnotation(){
+
+        if( !isOnline ){
+            return;
+        }
+
+        DownloadAnnotationTask downloadAnnotationTask = new DownloadAnnotationTask(){
+            protected void onPostExecute(final String result) {
+                super.onPostExecute(result);
+                if( result == null )
+                    return;
+                List<AnnotationData> annotationDatas = (List<AnnotationData>) Util.jsonToObject(result, new TypeReference<List<AnnotationData>>() {});
+                if( annotationDatas == null || annotationDatas.size() == 0 ){
+                    Toast.makeText(PDFViewActivity.this, "No Annotations to sync", Toast.LENGTH_LONG).show();
+                    return;
+                }
+//                        AnnotationProvider provider = fragment.getDocument().getAnnotationProvider();
+                for (AnnotationData annotationData : annotationDatas){
+                    Annotation annotation = (Annotation) Util.jsonToObject(annotationData.getJsonData(), Annotation.class);
+                    hasUpload.put(annotation, Boolean.TRUE);
+                    fragment.getDocument().getAnnotationProvider().addAnnotationToPage(annotation);
+                    fragment.notifyAnnotationHasChanged(annotation);
+                }
+                try {
+                    fragment.getDocument().saveIfModified();
+                    Log.i(LOG_TAG, "Document is saved");
+                    Toast.makeText(PDFViewActivity.this, "Document is saved", Toast.LENGTH_LONG).show();
+                }catch (IOException ex){
+                    ex.printStackTrace();
+                }
+            }
+        };
+        downloadAnnotationTask.execute(account, groupId);
     }
 
     @Override
@@ -227,7 +308,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     @Override
     public void onAnnotationUpdated(@NonNull Annotation annotation) {
         Log.v("TAG", "The annotation was updated");
-        Toast.makeText(this, "annotation was updated", Toast.LENGTH_LONG);
+//        Toast.makeText(this, "annotation was updated", Toast.LENGTH_LONG).show();;
     }
 
 
@@ -249,43 +330,11 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         annotationCreationToolbar.bindController(controller);
         toolbarCoordinatorLayout.displayContextualToolbar(annotationCreationToolbar, true);
         annotationCreationActive = true;
+
+        syncAnnotationButton.setVisibility(View.INVISIBLE);
+        annotationClearButton.setVisibility(View.INVISIBLE);
         updateButtonText();
 
-        if( !isOnline ){
-            return;
-        }
-
-        DownloadAnnotationTask task = new DownloadAnnotationTask(){
-            protected void onPostExecute(final String result) {
-                super.onPostExecute(result);
-                List<AnnotationData> annotationDatas = (List<AnnotationData>) Util.jsonToObject(result, new TypeReference<List<AnnotationData>>() {});
-                if( annotationDatas == null || annotationDatas.size() == 0 ){
-                    Toast.makeText(PDFViewActivity.this, "No Annotations to sync", Toast.LENGTH_LONG);
-                    return;
-                }
-//                        AnnotationProvider provider = fragment.getDocument().getAnnotationProvider();
-                for (AnnotationData annotationData : annotationDatas){
-                    Annotation annotation = (Annotation) Util.jsonToObject(annotationData.getJsonData(), Annotation.class);
-                    hasUpload.put(annotation, Boolean.TRUE);
-                    fragment.getDocument().getAnnotationProvider().addAnnotationToPage(annotation);
-                    fragment.notifyAnnotationHasChanged(annotation);
-                }
-                try {
-                    fragment.getDocument().saveIfModified();
-                    Log.i(LOG_TAG, "Document is saved");
-                    Toast.makeText(PDFViewActivity.this, "Document is saved", Toast.LENGTH_LONG);
-                }catch (IOException ex){
-                    ex.printStackTrace();
-                }
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//
-//                    }
-//                });
-            }
-        };
-        task.execute(account, groupId);
 
     }
 
@@ -315,36 +364,22 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         // Also unbind the annotation creation controller from the inspector controller.
         annotationCreationInspectorController.unbindAnnotationCreationController();
 
+        annotationClearButton.setVisibility(View.VISIBLE);
+        syncAnnotationButton.setVisibility(View.VISIBLE);
+
         updateButtonText();
 
-        if( !isOnline ){
-            return;
-        }
+    }
 
-        // get annotations
-        AnnotationProvider annotationProvider = fragment.getDocument().getAnnotationProvider();
-        List<Annotation> annotationList = annotationProvider.getAnnotations(fragment.getPage());
+    @Override
+    public boolean onPrepareAnnotationSelection(@NonNull AnnotationSelectionController annotationSelectionController, @NonNull Annotation annotation, boolean b) {
+        return true;
+    }
 
-        for(final Annotation annotation : annotationList){
-            if( annotation == null || hasUpload.get(annotation) == Boolean.TRUE ){
-                continue;
-            }
-            String json = Util.objectToJson(annotation);
-            UploadAnnotationTask task = new UploadAnnotationTask(){
-                @Override
-                protected void onPostExecute(String responseMsg) {
-                    super.onPostExecute(responseMsg);
-                    hasUpload.put(annotation, Boolean.TRUE);
-                    Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
-                }
-            };
-            task.execute(new AnnotationData(groupId, account, json));
-        }
-        try{
-            fragment.getDocument().saveIfModified();
-        }catch (IOException ex){
-            ex.printStackTrace();
-        }
+    @Override
+    public void onAnnotationSelected(@NonNull Annotation annotation, boolean b) {
+        Toast.makeText(PDFViewActivity.this, "Create by " + annotation.getCreator() +
+                "\nAt " + Util.getTimeSimple(annotation.getCreatedDate()), Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -403,85 +438,5 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     private void updateButtonText() {
         annotationCreationButton.setText(annotationCreationActive ? R.string.close_editor : R.string.open_editor);
     }
-
-
-    /**
-     * Creates a dialog and shows it
-     *
-     * @param exception
-     *            The exception to show in the dialog
-     * @param title
-     *            The dialog title
-     */
-    private void createAndShowDialogFromTask(final Exception exception, String title) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                createAndShowDialog(exception, "Error");
-            }
-        });
-    }
-
-
-    /**
-     * Creates a dialog and shows it
-     *
-     * @param exception
-     *            The exception to show in the dialog
-     * @param title
-     *            The dialog title
-     */
-    private void createAndShowDialog(Exception exception, String title) {
-        Throwable ex = exception;
-        if(exception.getCause() != null){
-            ex = exception.getCause();
-        }
-        createAndShowDialog(ex.getMessage(), title);
-    }
-
-    /**
-     * Creates a dialog and shows it
-     *
-     * @param message
-     *            The dialog message
-     * @param title
-     *            The dialog title
-     */
-    private void createAndShowDialog(final String message, final String title) {
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-
-        builder.setMessage(message);
-        builder.setTitle(title);
-        builder.create().show();
-    }
-
-//
-//    private class registerTask extends AsyncTask<String, Void, String>{
-//
-//        @Override
-//        protected void onPreExecute() {
-//            super.onPreExecute();
-//        }
-//
-//        @Override
-//        protected String doInBackground(String... params){
-//            try{
-//                    networkManager.postJson(Util.URL_ACCOUNT,
-//                        mapper.writeValueAsString(new Account(params[0], params[1]))
-//                );
-//
-//            }catch (JsonProcessingException ex){
-//                ex.printStackTrace();
-//            }
-//            return "Register Finished";
-//        }
-//
-//        @Override
-//        protected void onPostExecute(String responseMsg){
-//            Toast.makeText(PDFViewActivity.this, responseMsg, Toast.LENGTH_LONG);
-//        }
-//    }
-
-
 
 }

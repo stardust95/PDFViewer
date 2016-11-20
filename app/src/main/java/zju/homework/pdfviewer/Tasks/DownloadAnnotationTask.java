@@ -2,17 +2,11 @@ package zju.homework.pdfviewer.Tasks;
 
 import android.os.AsyncTask;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.pspdfkit.annotations.Annotation;
-
 import java.security.InvalidParameterException;
-import java.util.List;
 
-import zju.homework.pdfviewer.Java.Account;
 import zju.homework.pdfviewer.Java.AnnotationData;
-import zju.homework.pdfviewer.Java.ResponseMsg;
 import zju.homework.pdfviewer.Utils.NetworkManager;
-import zju.homework.pdfviewer.Activitiy.Util;
+import zju.homework.pdfviewer.Utils.Util;
 
 /**
  * Created by stardust on 2016/11/18.

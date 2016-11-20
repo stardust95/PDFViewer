@@ -1,16 +1,13 @@
 package zju.homework.pdfviewer.Tasks;
 
 import android.os.AsyncTask;
-import android.view.animation.AnticipateOvershootInterpolator;
-
-import com.pspdfkit.annotations.Annotation;
 
 import java.security.InvalidParameterException;
 
-import zju.homework.pdfviewer.Java.Account;
 import zju.homework.pdfviewer.Java.AnnotationData;
+import zju.homework.pdfviewer.Java.ResponseMsg;
 import zju.homework.pdfviewer.Utils.NetworkManager;
-import zju.homework.pdfviewer.Activitiy.Util;
+import zju.homework.pdfviewer.Utils.Util;
 
 /**
  * Created by stardust on 2016/11/18.
@@ -43,9 +40,12 @@ public class UploadAnnotationTask extends AsyncTask<Object, Void, String> {
 
         NetworkManager networkManager = new NetworkManager();
         String result = networkManager.postJson(Util.URL_ANNOTATION, Util.objectToJson(annotationData));
-//        ResponseMsg<AnnotationData> result = networkManager.postJsonAnnotation(Util.URL_ANNOTATION, Util.objectToJson(annotation));
-//        if( result != null )
-//            return result.getMessage();
-        return result;
+
+        if( result != null ){
+            ResponseMsg responseMsg = (ResponseMsg) Util.jsonToObject(result, ResponseMsg.class);
+            if( responseMsg != null )
+                return responseMsg.getMessage();
+        }
+        return null;
     }
 }

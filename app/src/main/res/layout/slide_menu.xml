@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawer_content"
+    android:layout_width="240dp"
+    android:layout_height="match_parent"
+    android:layout_gravity="start"
+    android:padding="12dp"
+    android:textColor="@color/light_gray"
+    android:background="@color/darker_gray"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:layout_marginTop="12dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Welcome!"
+            android:textColor="@color/light_gray"
+            android:textSize="21dp"
+            android:textStyle="bold"
+            android:typeface="sans"/>
+
+        <TextView
+            android:id="@+id/slide_menu_account"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/light_gray"
+            android:textSize="16dp"
+            android:textStyle="bold"
+            android:typeface="sans"
+            android:lines="1"/>
+
+        <TextView
+            android:id="@+id/slide_menu_groupinfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:textColor="@color/light_gray"
+            android:typeface="sans"
+            android:textSize="16dp"
+            android:textStyle="bold"
+            android:text="You have not joined a group"/>
+
+        <ListView
+            android:id="@+id/menu_list_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="18dp"
+            android:padding="5dp"
+            android:divider="@color/divider"
+            android:dividerHeight="0px">
+
+        </ListView>
+
+    </LinearLayout>
+
+
+
+
+
+</LinearLayout>

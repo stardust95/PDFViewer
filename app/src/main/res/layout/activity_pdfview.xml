@@ -13,12 +13,16 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"></LinearLayout>
+
     <Button
         android:id="@+id/openAnnotationEditing"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
+        android:layout_margin="12dp"
         android:elevation="4dp" />
 
     <Button
@@ -26,9 +30,18 @@
         android:layout_width="wrap_content"
         android:layout_height="48dp"
         android:layout_gravity="bottom|left"
-        android:layout_margin="16dp"
+        android:layout_margin="12dp"
         android:elevation="4dp"
         android:text="clear"/>
+
+    <Button
+        android:id="@+id/syncAnnotation"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|center"
+        android:layout_margin="12dp"
+        android:elevation="4dp"
+        android:text="sync"/>
 
     <!--<Button-->
         <!--android:id="@+id/changeAccount"-->
