@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_one"
+        android:icon="@android:drawable/ic_dialog_map"
+        app:showAsAction="always"
+        android:title="One"/>
+    <item
+        android:id="@+id/action_two"
+        android:icon="@android:drawable/ic_dialog_info"
+        app:showAsAction="always"
+        android:title="Two"/>
+    <item
+        android:id="@+id/action_three"
+        android:icon="@android:drawable/ic_dialog_email"
+        app:showAsAction="always"
+        android:title="Three"/>
+    <item
+        android:id="@+id/action_four"
+        android:icon="@android:drawable/ic_popup_reminder"
+        app:showAsAction="always"
+        android:title="Four"/>
+</menu>

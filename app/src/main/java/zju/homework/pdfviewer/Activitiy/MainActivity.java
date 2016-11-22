@@ -204,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
                     final EditText et = new EditText(MainActivity.this);
 
                     new AlertDialog.Builder(MainActivity.this).setTitle("Input group id")
-                            .setIcon(android.R.drawable.ic_dialog_info)
+//                            .setIcon(android.R.drawable.ic_dialog_info)
                             .setView(et)
                             .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog1, int which) {

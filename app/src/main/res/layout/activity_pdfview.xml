@@ -17,40 +17,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"></LinearLayout>
 
-    <Button
-        android:id="@+id/openAnnotationEditing"
-        android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="12dp"
-        android:elevation="4dp" />
-
-    <Button
-        android:id="@+id/clearAnnotation"
-        android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:layout_gravity="bottom|left"
-        android:layout_margin="12dp"
-        android:elevation="4dp"
-        android:text="clear"/>
-
-    <Button
-        android:id="@+id/syncAnnotation"
-        android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:layout_gravity="bottom|center"
-        android:layout_margin="12dp"
-        android:elevation="4dp"
-        android:text="sync"/>
-
-    <!--<Button-->
-        <!--android:id="@+id/changeAccount"-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_gravity="bottom|center"-->
-        <!--android:layout_margin="16dp"-->
-        <!--android:elevation="4dp"-->
-        <!--android:text="change"/>-->
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -62,7 +28,56 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
 
+
     </FrameLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="?colorPrimaryDark"
+
+            android:layout_alignParentBottom="true">
+
+
+            <Button
+                android:id="@+id/changePage"
+                android:layout_weight="1"
+                android:layout_width="80dp"
+                android:background="?colorPrimaryDark"
+                android:textColor="@color/pspdf__color_white"
+                android:layout_height="match_parent"
+                android:elevation="4dp"
+                android:text="Page"/>
+
+            <Button
+                android:id="@+id/openAnnotationEditing"
+                android:layout_width="80dp"
+                android:background="?colorPrimaryDark"
+                android:textColor="@color/pspdf__color_white"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="Edit"
+                android:elevation="4dp" />
+
+
+            <Button
+                android:id="@+id/syncAnnotation"
+                android:layout_weight="1"
+                android:background="?colorPrimaryDark"
+                android:textColor="@color/pspdf__color_white"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:elevation="4dp"
+                android:text="sync"/>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
 
     <com.pspdfkit.ui.inspector.PropertyInspectorCoordinatorLayout
         android:id="@+id/inspectorCoordinatorLayout"

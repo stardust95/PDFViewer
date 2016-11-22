@@ -3,13 +3,17 @@ package zju.homework.pdfviewer.Activitiy;
 import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -162,21 +166,22 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
             }
         });
 
-        annotationClearButton = (Button) findViewById(R.id.clearAnnotation);
+        annotationClearButton = (Button) findViewById(R.id.changePage);
         annotationClearButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                AnnotationProvider provider = fragment.getDocument().getAnnotationProvider();
-                for (Annotation annotation : provider.getAnnotations(fragment.getPage())){
-                    hasUpload.put(annotation, Boolean.FALSE);
-                    provider.removeAnnotationFromPage(annotation);
-                    fragment.notifyAnnotationHasChanged(annotation);
-                }
-                try {
-                    fragment.getDocument().saveIfModified();
-                }catch (IOException ex){
-                    ex.printStackTrace();
-                }
+
+                final EditText et = new EditText(PDFViewActivity.this);
+                AlertDialog.Builder builder = new AlertDialog.Builder(PDFViewActivity.this);
+                builder.setTitle("Goto page")
+                        .setView(et)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                fragment.setPage(Integer.valueOf(et.getText().toString()));
+                            }
+                        });
+
             }
         });
 
