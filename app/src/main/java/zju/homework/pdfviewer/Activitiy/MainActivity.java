@@ -272,12 +272,14 @@ public class MainActivity extends AppCompatActivity {
                                 if( res == null ){
                                     showDialogWithText("Quit group error");
                                 }else{
-                                    showDialogWithText("Successfully quit group!");
+                                    showDialogWithText("Your Group " + mAccount.getGroup().getId() + "  dismissed successfully!");
+                                    mAccount.quitGroup();
                                     TextView textView = (TextView)findViewById(R.id.slide_menu_groupinfo);
                                     textView.setText("You have not joined a group");
                                 }
                             }
                         };
+                        task.execute(mAccount.getGroup());
                     }
                 }
                 //关于

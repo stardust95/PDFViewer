@@ -3,14 +3,11 @@ package zju.homework.pdfviewer.Activitiy;
 import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -19,10 +16,9 @@ import android.widget.Toast;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.pspdfkit.annotations.Annotation;
 import com.pspdfkit.annotations.AnnotationProvider;
+import com.pspdfkit.annotations.AnnotationType;
 import com.pspdfkit.configuration.PSPDFConfiguration;
-import com.pspdfkit.ui.PSPDFActivity;
 import com.pspdfkit.ui.PSPDFFragment;
-import com.pspdfkit.ui.PSPDFViews;
 import com.pspdfkit.ui.inspector.PropertyInspectorCoordinatorLayout;
 import com.pspdfkit.ui.inspector.annotation.AnnotationCreationInspectorController;
 import com.pspdfkit.ui.inspector.annotation.AnnotationEditingInspectorController;
@@ -42,7 +38,6 @@ import com.pspdfkit.ui.toolbar.ToolbarCoordinatorLayout;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Timer;
 
 import zju.homework.pdfviewer.BuildConfig;
 import zju.homework.pdfviewer.Java.AnnotationData;
@@ -70,7 +65,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     private PSPDFFragment fragment;
     private ToolbarCoordinatorLayout toolbarCoordinatorLayout;
     private Button annotationCreationButton;
-    private Button annotationClearButton;
+    private Button changePageButton;
     private Button changeAccountButton;
     private Button syncAnnotationButton;
 
@@ -166,21 +161,28 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
             }
         });
 
-        annotationClearButton = (Button) findViewById(R.id.changePage);
-        annotationClearButton.setOnClickListener(new View.OnClickListener() {
+        changePageButton = (Button) findViewById(R.id.changePage);
+        changePageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
                 final EditText et = new EditText(PDFViewActivity.this);
+                et.setText(Integer.toString(fragment.getPage()+1));
                 AlertDialog.Builder builder = new AlertDialog.Builder(PDFViewActivity.this);
                 builder.setTitle("Goto page")
                         .setView(et)
-                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        .setPositiveButton("Go", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                fragment.setPage(Integer.valueOf(et.getText().toString()));
+                                String text = et.getText().toString();
+                                int target = Integer.valueOf(text);
+                                target = Math.min(target, fragment.getDocument().getPageCount());
+                                target = Math.max(0, target);
+                                fragment.setPage(target-1);
                             }
-                        });
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
 
             }
         });
@@ -337,7 +339,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         annotationCreationActive = true;
 
         syncAnnotationButton.setVisibility(View.INVISIBLE);
-        annotationClearButton.setVisibility(View.INVISIBLE);
+        changePageButton.setVisibility(View.INVISIBLE);
         updateButtonText();
 
 
@@ -369,7 +371,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         // Also unbind the annotation creation controller from the inspector controller.
         annotationCreationInspectorController.unbindAnnotationCreationController();
 
-        annotationClearButton.setVisibility(View.VISIBLE);
+        changePageButton.setVisibility(View.VISIBLE);
         syncAnnotationButton.setVisibility(View.VISIBLE);
 
         updateButtonText();
