@@ -360,7 +360,9 @@ public class MainActivity extends AppCompatActivity {
                                 // do some checking?
                                 downloadAndOpenPDF(input);
                             }
-                        });
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
             }
         });
     }
@@ -453,6 +455,7 @@ public class MainActivity extends AppCompatActivity {
                     super.onPostExecute(obj);
                     Group group = (Group) obj;
 
+                    showProgress(false, "");
                     if( group != null ){
                         createAndShowDialog("Create Group Success", "msg");
                         mAccount.setGroup(group);
@@ -473,11 +476,10 @@ public class MainActivity extends AppCompatActivity {
                             MainActivity.this.startActivity(intent);
                         } catch (IOException ex){
                             ex.printStackTrace();
-                        }finally {
-                            showProgress(false, "");
                         }
                     }else{
                         createAndShowDialog("Create Group Failed", "msg");
+
                     }
                 }
             };

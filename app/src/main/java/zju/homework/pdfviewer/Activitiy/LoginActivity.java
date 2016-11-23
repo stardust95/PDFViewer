@@ -216,14 +216,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 @Override
                 public void onCancelled() {
                     super.onCancelled();
-                    mAuthTask = null;
+//                    mAuthTask = null;
                     showProgress(false);
                 }
 
                 @Override
                 public void onPostExecute(final String result) {
                     super.onPostExecute(result);
-                    mAuthTask = null;
+//                    mAuthTask = null;
                     showProgress(false);
 
                     if (result.equals("Login Success")) {

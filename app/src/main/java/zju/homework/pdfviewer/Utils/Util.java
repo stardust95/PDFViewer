@@ -45,8 +45,8 @@ import java.util.Random;
 
 public class Util {
 
-    private static final String HOST = "http://123.206.216.203:3000";
-//    private static final String HOST = "http://222.205.46.130:3000";
+//    private static final String HOST = "http://123.206.216.203:3000";
+    private static final String HOST = "http://222.205.46.130:3000";
     public static final String URL_ACCOUNT = HOST + "/accounts";
     public static final String URL_ANNOTATION = HOST + "/annotations";
     public static final String URL_GROUP = HOST + "/groups";
