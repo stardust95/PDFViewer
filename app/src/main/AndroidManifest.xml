@@ -19,7 +19,9 @@
         android:largeHeap="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name=".Activitiy.MainActivity">
+        <activity
+            android:name=".Activitiy.MainActivity"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 

@@ -28,15 +28,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Random;
 
 import zju.homework.pdfviewer.Activitiy.LoginActivity;
 import zju.homework.pdfviewer.Java.AnnotationMixin;
 import zju.homework.pdfviewer.Java.IgnoreUnknownMixin;
 import zju.homework.pdfviewer.Java.SubclassAnnotationMixin;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Random;
 
 
 /**

@@ -21,6 +21,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,7 +30,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.charset.MalformedInputException;
 import java.util.ArrayList;
 
 import zju.homework.pdfviewer.Java.Account;
@@ -197,7 +197,16 @@ public class MainActivity extends AppCompatActivity {
                 //加入组
                 else if(position == 1) {
                     if(mAccount.getGroup() != null) {
-                        showDialogWithText("You have had a group!");
+                        Group group = mAccount.getGroup();
+                        String filename = group.getFileName();
+                        File tmpFile = new File(getExternalCacheDir() + filename);
+                        Log.i(LOG_TAG, tmpFile.getAbsolutePath());
+                        Uri uri = Util.base64ToFile(group.getPdfData(), tmpFile);
+                        Intent intent = new Intent(MainActivity.this, PDFViewActivity.class);
+                        intent.putExtra(PDFViewActivity.EXTRA_URI, uri);
+                        intent.putExtra(PDFViewActivity.EXTRA_ACCOUNT, mAccount.getID());
+                        intent.putExtra(PDFViewActivity.EXTRA_GROUP, group.getId());
+                        MainActivity.this.startActivity(intent);
                         return;
                     }
 
@@ -224,19 +233,17 @@ public class MainActivity extends AppCompatActivity {
                                                     createAndShowDialog("Join Group Failed", "msg");
                                                     return;
                                                 }
-                                                try{
-                                                    String filename = group.getId() + "-" + group.getFileName();
-                                                    File tmpFile = File.createTempFile(filename, ".pdf", getExternalCacheDir());
-                                                    Log.i(LOG_TAG, tmpFile.getAbsolutePath());
-                                                    Uri uri = Util.base64ToFile(group.getPdfData(), tmpFile);
-                                                    Intent intent = new Intent(MainActivity.this, PDFViewActivity.class);
-                                                    intent.putExtra(PDFViewActivity.EXTRA_URI, uri);
-                                                    intent.putExtra(PDFViewActivity.EXTRA_ACCOUNT, mAccount.getID());
-                                                    intent.putExtra(PDFViewActivity.EXTRA_GROUP, group.getId());
-                                                    MainActivity.this.startActivity(intent);
-                                                }catch (IOException ex){
-                                                    ex.printStackTrace();
-                                                }
+                                                String filename = group.getFileName();
+//                                                    File tmpFile = File.createTempFile(filename, ".pdf", getExternalCacheDir());
+                                                File tmpFile = new File(getExternalCacheDir() + filename);
+                                                Log.i(LOG_TAG, tmpFile.getAbsolutePath());
+                                                Uri uri = Util.base64ToFile(group.getPdfData(), tmpFile);
+                                                Intent intent = new Intent(MainActivity.this, PDFViewActivity.class);
+                                                intent.putExtra(PDFViewActivity.EXTRA_URI, uri);
+                                                intent.putExtra(PDFViewActivity.EXTRA_ACCOUNT, mAccount.getID());
+                                                intent.putExtra(PDFViewActivity.EXTRA_GROUP, group.getId());
+                                                MainActivity.this.startActivity(intent);
+
                                             }
                                         };
                                         joinGroupTask.execute(input);
@@ -269,11 +276,11 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             protected void onPostExecute(Object res) {
                                 super.onPostExecute(res);
+                                showProgress(false, null);
                                 if( res == null ){
                                     showDialogWithText("Quit group error");
                                 }else{
-                                    showDialogWithText("Your Group " + mAccount.getGroup().getId() + "  dismissed successfully!");
-                                    mAccount.quitGroup();
+                                    showDialogWithText("Successfully quit group!");
                                     TextView textView = (TextView)findViewById(R.id.slide_menu_groupinfo);
                                     textView.setText("You have not joined a group");
                                 }
@@ -321,21 +328,21 @@ public class MainActivity extends AppCompatActivity {
 
 
     //设置打开新pdf文件的按钮点击事件
-    private Button mButton1, mButton2;
-    private Button openOnlineButton;
+    private LinearLayout mLocal, mUrl;
+    private Button mClear;
     private void setButton() {
-        mButton1 = (Button)findViewById(R.id.open_new_button);
-        mButton2 = (Button)findViewById(R.id.clear_button);
-        openOnlineButton = (Button)findViewById(R.id.open_online_button);
+        mLocal = (LinearLayout)findViewById(R.id.open_local_file);
+        mUrl = (LinearLayout)findViewById(R.id.open_url_file);
+        mClear = (Button)findViewById(R.id.clear_button);
 
-        mButton1.setOnClickListener(new View.OnClickListener() {
+        mLocal.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Util.showOpenFileDialog(MainActivity.this, Util.REQUEST_OPEN_DOCUMENT);
             }
         });
 
-        mButton2.setOnClickListener(new View.OnClickListener() {
+        mClear.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mHistoryManager.clearHistories();
@@ -343,7 +350,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        openOnlineButton.setOnClickListener(new View.OnClickListener() {
+        mUrl.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
@@ -455,31 +462,28 @@ public class MainActivity extends AppCompatActivity {
                     super.onPostExecute(obj);
                     Group group = (Group) obj;
 
-                    showProgress(false, "");
                     if( group != null ){
                         createAndShowDialog("Create Group Success", "msg");
                         mAccount.setGroup(group);
+                        showProgress(false, "");
 //                showDialogWithText("Successfully created!");
                         TextView textView = (TextView)findViewById(R.id.slide_menu_groupinfo);
                         textView.setText("Your group id:" + mAccount.getGroup().getId() + "\n"
                                 + "Your PDF: " + mAccount.getGroup().getFileName());
-                        try{
-                            File tmpFile = File.createTempFile(group.getFileName(), ".pdf", getCacheDir());
-                            Uri uri = Util.base64ToFile(group.getPdfData(), tmpFile);
-                            Intent intent = new Intent(MainActivity.this, PDFViewActivity.class);
-                            Bundle bundle = new Bundle();
-                            intent.putExtra(PDFViewActivity.EXTRA_URI, uri);
-                            intent.putExtra(PDFViewActivity.EXTRA_ACCOUNT, mAccount.getID());
-                            intent.putExtra(PDFViewActivity.EXTRA_GROUP, group.getId());
+
+                        String filename = getExternalCacheDir()+group.getFileName();
+                        File tmpFile = new File(filename);
+                        Uri uri = Util.base64ToFile(group.getPdfData(), tmpFile);
+                        Intent intent = new Intent(MainActivity.this, PDFViewActivity.class);
+                        intent.putExtra(PDFViewActivity.EXTRA_URI, uri);
+                        intent.putExtra(PDFViewActivity.EXTRA_ACCOUNT, mAccount.getID());
+                        intent.putExtra(PDFViewActivity.EXTRA_GROUP, group.getId());
 //                    intent.putExtra(PDFViewActivity.EXTRA_ACCOUNT, mAccount.getId());
-                            //添加email
-                            MainActivity.this.startActivity(intent);
-                        } catch (IOException ex){
-                            ex.printStackTrace();
-                        }
+                        //添加email
+                        MainActivity.this.startActivity(intent);
+
                     }else{
                         createAndShowDialog("Create Group Failed", "msg");
-
                     }
                 }
             };
@@ -489,7 +493,7 @@ public class MainActivity extends AppCompatActivity {
             try{
                 String groupName = Integer.toString(Util.randInt(Group.GROUPID_MIN, Group.GROUPID_MAX));
                 String pdfData = Util.inputStreamToBase64(MainActivity.this.getContentResolver().openInputStream(fileUri));
-                Group group = new Group(groupName, mAccount, pdfData, fileUri.getLastPathSegment());
+                Group group = new Group(groupName, mAccount, pdfData, fileUri.getLastPathSegment().replace('/','-'));
                 createGroupTask.execute(group);
                 showProgress(true, "Creating Group");
 
@@ -530,8 +534,6 @@ public class MainActivity extends AppCompatActivity {
                     MainActivity.this.startActivity(intent);
                 }catch (IOException ex){
                     ex.printStackTrace();
-                }finally {
-                    showProgress(false, "");
                 }
             }
         };

@@ -16,7 +16,6 @@ import android.widget.Toast;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.pspdfkit.annotations.Annotation;
 import com.pspdfkit.annotations.AnnotationProvider;
-import com.pspdfkit.annotations.AnnotationType;
 import com.pspdfkit.configuration.PSPDFConfiguration;
 import com.pspdfkit.ui.PSPDFFragment;
 import com.pspdfkit.ui.inspector.PropertyInspectorCoordinatorLayout;
@@ -65,7 +64,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
     private PSPDFFragment fragment;
     private ToolbarCoordinatorLayout toolbarCoordinatorLayout;
     private Button annotationCreationButton;
-    private Button changePageButton;
+    private Button annotationClearButton;
     private Button changeAccountButton;
     private Button syncAnnotationButton;
 
@@ -161,13 +160,12 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
             }
         });
 
-        changePageButton = (Button) findViewById(R.id.changePage);
-        changePageButton.setOnClickListener(new View.OnClickListener() {
+        annotationClearButton = (Button) findViewById(R.id.changePage);
+        annotationClearButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
                 final EditText et = new EditText(PDFViewActivity.this);
-                et.setText(Integer.toString(fragment.getPage()+1));
                 AlertDialog.Builder builder = new AlertDialog.Builder(PDFViewActivity.this);
                 builder.setTitle("Goto page")
                         .setView(et)
@@ -177,7 +175,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
                                 String text = et.getText().toString();
                                 int target = Integer.valueOf(text);
                                 target = Math.min(target, fragment.getDocument().getPageCount());
-                                target = Math.max(0, target);
+                                target = Math.max(1, target);
                                 fragment.setPage(target-1);
                             }
                         })
@@ -339,7 +337,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         annotationCreationActive = true;
 
         syncAnnotationButton.setVisibility(View.INVISIBLE);
-        changePageButton.setVisibility(View.INVISIBLE);
+        annotationClearButton.setVisibility(View.INVISIBLE);
         updateButtonText();
 
 
@@ -371,7 +369,7 @@ public class PDFViewActivity extends AppCompatActivity implements PSPDFAnnotatio
         // Also unbind the annotation creation controller from the inspector controller.
         annotationCreationInspectorController.unbindAnnotationCreationController();
 
-        changePageButton.setVisibility(View.VISIBLE);
+        annotationClearButton.setVisibility(View.VISIBLE);
         syncAnnotationButton.setVisibility(View.VISIBLE);
 
         updateButtonText();

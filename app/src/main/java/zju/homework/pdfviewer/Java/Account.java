@@ -65,6 +65,7 @@ public class Account {
             return false;
         }
         else {
+            //.............退出的操作
             currentGroupId = null;
             return true;
         }

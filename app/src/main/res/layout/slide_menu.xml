@@ -7,8 +7,8 @@
     android:layout_height="match_parent"
     android:layout_gravity="start"
     android:padding="12dp"
-    android:textColor="@color/light_gray"
-    android:background="@color/darker_gray"
+    android:textColor="@color/dark_gray"
+    android:background="@color/light_gray"
     android:orientation="vertical">
 
     <LinearLayout
@@ -22,7 +22,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Welcome!"
-            android:textColor="@color/light_gray"
+            android:textColor="@color/dark_gray"
             android:textSize="21dp"
             android:textStyle="bold"
             android:typeface="sans"/>
@@ -31,7 +31,7 @@
             android:id="@+id/slide_menu_account"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/light_gray"
+            android:textColor="@color/dark_gray"
             android:textSize="16dp"
             android:textStyle="bold"
             android:typeface="sans"
@@ -42,7 +42,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
-            android:textColor="@color/light_gray"
+            android:textColor="@color/dark_gray"
             android:typeface="sans"
             android:textSize="16dp"
             android:textStyle="bold"
@@ -54,7 +54,7 @@
             android:layout_height="wrap_content"
             android:layout_margin="18dp"
             android:padding="5dp"
-            android:divider="@color/divider"
+            android:divider="@color/dark_gray"
             android:dividerHeight="0px">
 
         </ListView>
